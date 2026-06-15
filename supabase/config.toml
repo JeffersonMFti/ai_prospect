@@ -1,0 +1,25 @@
+# Supabase config — ai_prospect
+project_id = "jecpyknyjwzedosjgaqc"
+
+[db]
+major_version = 15
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[realtime]
+enabled = true
+
+[functions.score-leads]
+verify_jwt = false
+
+[functions.generate-messages]
+verify_jwt = false
+
+[functions.enqueue-sends]
+verify_jwt = true
+
+[functions.process-send-queue]
+verify_jwt = false
