@@ -34,10 +34,15 @@ export default function Aprovacao() {
   async function aprovar(lead: LeadComMensagem) {
     const msg = lead.messages[0];
     if (!msg) return;
-    // MVP: marca a mensagem como aprovada e o lead como 'aprovado'.
-    // O agendamento na fila (sends, 1/3min) é feito pela Edge Function/cron (T3/T4).
-    await supabase.from('messages').update({ approved: true, approved_at: new Date().toISOString() }).eq('id', msg.id);
-    await supabase.from('leads').update({ status: 'aprovado' }).eq('id', lead.id);
+    // Chama a Edge Function enqueue-sends: aprova a mensagem e agenda o envio
+    // na fila respeitando o intervalo de 3 min (throttle anti-ban).
+    const { error: e } = await supabase.functions.invoke('enqueue-sends', {
+      body: { message_ids: [msg.id] },
+    });
+    if (e) {
+      setError(`Falha ao agendar envio: ${e.message}`);
+      return;
+    }
     setLeads((prev) => prev.filter((l) => l.id !== lead.id));
   }
 
