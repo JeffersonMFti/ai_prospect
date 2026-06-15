@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.local
+*.local
+
+# Python (agent/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node (web/)
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# Supabase
+.supabase/
+supabase/.temp/
+
+# Playwright
+playwright-report/
+test-results/
+.cache/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
