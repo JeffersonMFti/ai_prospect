@@ -101,7 +101,11 @@ Cada tarefa tem um **brief pronto** em [`specs/orchestration/agent-briefs.md`](s
 
 ---
 
-## 🛠️ Setup (quando o código existir)
+## 🚀 Go-live
+
+Passo a passo completo em **[DEPLOY.md](DEPLOY.md)**. Todas as chaves a preencher estão em **[.env.example](.env.example)** (com instruções de onde pegar cada uma).
+
+## 🛠️ Setup rápido
 
 ```bash
 # 1) Banco — Supabase
