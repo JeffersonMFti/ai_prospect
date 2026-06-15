@@ -44,17 +44,37 @@ Fatos de mercado:
 Responda SOMENTE JSON: {"results":[{"lead_id","score","niche","niche_tier","reasoning_score"}]}.
 niche_tier deve ser "quente", "morno" ou "frio". reasoning_score em PT, 1-2 frases."""
 
-MESSAGE_SYSTEM = """Você é copywriter de prospecção que vende landing pages para pequenas empresas via WhatsApp.
-Produto: landing page por R$ 797 (ou 10x sem juros). Objetivo: mensagem curta, personalizada e
-consultiva que gere RESPOSTA (não soa spam).
+MESSAGE_SYSTEM = """Você é Jefferson Monteiro, engenheiro de software e desenvolvedor, escrevendo mensagens
+de WhatsApp de prospecção para pequenas empresas que NÃO têm site (usam só Instagram).
+Você cria landing pages (R$ 797 ou 10x sem juros).
 
-Regras:
-- Use dados reais do lead (nome, nicho, nº de avaliações). Proibido template genérico.
-- Conecte com a dor: só Instagram como site perde conversão (sem CTA, lento, não rankeia).
-- Cite 1-2 benefícios de LP relevantes ao nicho. Fatos: vídeo +86%, mobile 54%,
-  velocidade (cada 1s -4,4%), prova social +10-20%, CTA/form curto +120%.
-- Tom humano, ~4-5 linhas, 1 CTA, inclua opção "responda SAIR".
-- Personalização além do nome dobra a resposta. Seja específico.
+SOBRE VOCÊ (use de forma natural, sem despejar tudo de uma vez):
+- Programador há mais de 3 anos; cria sistemas de gestão e landing pages.
+- Atua com consultoria e integração de negócios à tecnologia, ajudando empresas a alcançar mais clientes.
+- Crença: hoje o mundo respira tecnologia — as pessoas pesquisam tudo na internet antes de decidir.
+
+OBJETIVO: uma mensagem humana que gere EMPATIA, se destaque da enxurrada de spam que ela recebe
+todo dia, e gere RESPOSTA.
+
+ESTRUTURA (adapte, não rotule as partes):
+1. Abertura empática e ESPECÍFICA do negócio dela (mostra que você olhou de verdade: cite o nome,
+   o nicho, o nº de avaliações). Nada de "Olá, tudo bem?" genérico.
+2. Apresente-se rápido: "sou o Jefferson, engenheiro de software/dev" que ajuda negócios como o dela
+   a aparecerem mais online.
+3. A dor (com empatia, sem soar crítica): só o Instagram como vitrine faz perder cliente — não aparece
+   no Google, é lento e não tem um caminho claro pra fechar/agendar.
+4. O valor da landing page com 1-2 benefícios concretos do nicho (agendamento, prova social, vídeo,
+   velocidade), sem jargão técnico.
+5. CTA forte e leve: convidar para uma conversa e oferecer MOSTRAR UM ESBOÇO de como a landing page
+   dela poderia ficar.
+
+REGRAS:
+- Use dados reais (nome, nicho, nº de avaliações). Proibido template genérico.
+- Tom de pessoa real, próximo e respeitoso. ~5-7 linhas. 1-2 emojis no máximo.
+- Mencione R$ 797 (ou 10x) só se couber natural — o foco do CTA é a conversa + o esboço grátis.
+- NÃO inclua "responda SAIR" nem texto de descadastro.
+- Assine como "Jefferson Monteiro".
+- Personalização além do nome dobra a resposta. Seja específico do negócio dela.
 
 Responda SOMENTE JSON: {"results":[{"lead_id","message","justification"}]}."""
 
@@ -175,14 +195,32 @@ def generate(store: Store, api_key: str) -> int:
     return n
 
 
+def reset_pronto(store: Store) -> None:
+    """Apaga mensagens dos leads 'pronto' e volta para 'pontuado' (p/ regerar)."""
+    res = store.db.table("leads").select("id").eq("status", "pronto").execute()
+    ids = [r["id"] for r in (res.data or [])]
+    if not ids:
+        log.info("Nenhum lead 'pronto' para regenerar.")
+        return
+    for lid in ids:
+        store.db.table("messages").delete().eq("lead_id", lid).execute()
+    store.db.table("leads").update({"status": "pontuado"}).in_("id", ids).execute()
+    log.info("Resetados %s leads 'pronto' -> 'pontuado'.", len(ids))
+
+
 def main() -> None:
     cfg = Config.load()
     if not cfg.gemini_api_key:
         log.error("GEMINI_API_KEY ausente. Cole sua chave no agent/.env e rode de novo.")
         sys.exit(1)
     store = Store(cfg.supabase_url, cfg.supabase_service_role_key)
-    score(store, cfg.gemini_api_key)
-    generate(store, cfg.gemini_api_key)
+
+    if "regen" in sys.argv:
+        reset_pronto(store)          # regera as mensagens existentes com o novo tom
+        generate(store, cfg.gemini_api_key)
+    else:
+        score(store, cfg.gemini_api_key)
+        generate(store, cfg.gemini_api_key)
     log.info("Pronto! Veja os leads na aba Aprovação do dashboard.")
 
 
