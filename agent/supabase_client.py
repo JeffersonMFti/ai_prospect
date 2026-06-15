@@ -57,10 +57,17 @@ class Store:
 
     # ---- leads ---------------------------------------------------------------
     def insert_lead(self, lead: dict[str, Any]) -> bool:
-        """Insere um lead. Retorna True se inseriu, False se era duplicado (telefone)."""
+        """Insere um lead. Retorna True se inseriu, False se era duplicado (telefone).
+
+        Usa insert simples e trata violação de unicidade como duplicado — compatível
+        com o índice único parcial em phone (on_conflict não funciona com índice parcial).
+        """
         try:
-            res = self.db.table("leads").upsert(lead, on_conflict="phone", ignore_duplicates=True).execute()
-            return bool(res.data)  # vazio = conflito ignorado (duplicado)
+            res = self.db.table("leads").insert(lead).execute()
+            return bool(res.data)
         except Exception as e:  # noqa: BLE001
+            msg = str(e).lower()
+            if "23505" in msg or "duplicate" in msg or "unique" in msg:
+                return False  # telefone já existe -> duplicado, ok
             log.warning("Falha ao inserir lead %s: %s", lead.get("name"), e)
             return False

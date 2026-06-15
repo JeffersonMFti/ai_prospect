@@ -1,51 +1,56 @@
 """Scraper do Google Maps (Playwright, navegador REAL — Constitution: headless proibido).
 
-Estratégia: abre a busca, percorre a lista de resultados, abre cada empresa e
-extrai dados. Considera lead VÁLIDO apenas quem NÃO tem site de verdade (F01 RN-05).
+Estratégia em 2 fases (mais robusta que clicar card a card):
+  Fase 1 — na lista de resultados, rola e COLETA (nome via aria-label + href) de cada empresa.
+  Fase 2 — abre cada empresa pela URL, extrai telefone/site e decide se é lead válido
+           (F01 RN-05: só quem NÃO tem site de verdade).
 
-⚠️ O DOM do Maps muda com frequência. Todos os seletores ficam em SELECTORS para
-manutenção fácil. Se a captura zerar, é aqui que se ajusta.
+⚠️ O DOM do Maps muda com frequência. Seletores isolados em SELECTORS.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from playwright.sync_api import Page, TimeoutError as PWTimeout, sync_playwright
 
 try:
     from playwright_stealth import stealth_sync
 except Exception:  # noqa: BLE001
-    stealth_sync = None  # stealth é opcional
+    stealth_sync = None
 
 from . import human_behavior as hb
 from . import parsers
 
 log = logging.getLogger("agent.scraper")
 
-# Seletores isolados para manutenção (podem precisar de ajuste se o Maps mudar).
 SELECTORS = {
     "results_feed": 'div[role="feed"]',
-    "result_card": 'div[role="feed"] a[href*="/maps/place/"]',
-    "detail_name": 'h1.DUwDvf, h1',
+    "result_link": 'a[href*="/maps/place/"]',
+    "detail_name": "h1.DUwDvf",
     "website_btn": 'a[data-item-id="authority"]',
-    "phone_btn": 'button[data-item-id^="phone"], a[data-item-id^="phone"]',
-    "rating": 'div.F7nice span[aria-hidden="true"]',
-    "reviews": 'div.F7nice span[aria-label*="avalia"], div.F7nice',
-    "category": 'button[jsaction*="category"], div.fontBodyMedium button',
+    "phone_btn": '[data-item-id^="phone:tel:"]',
+    "rating": "div.F7nice span[aria-hidden='true']",
+    "reviews": "div.F7nice span[aria-label*='avalia']",
+    "category": "button.DkEaL",
 }
 
 CAPTCHA_HINTS = ("/sorry/", "unusual traffic", "recaptcha", "tráfego incomum")
+BAD_NAMES = {"resultados", "results", ""}
 
 
-@dataclass
 class CaptchaDetected(Exception):
-    url: str
+    def __init__(self, url: str) -> None:
+        self.url = url
+        super().__init__(url)
 
 
-def _detail_text(page: Page, selector: str) -> str | None:
+def build_query(niche: str, city: str) -> str:
+    return f"{niche} em {city}".strip()
+
+
+def _text(page: Page, selector: str) -> str | None:
     try:
         el = page.query_selector(selector)
         return el.inner_text().strip() if el else None
@@ -53,7 +58,7 @@ def _detail_text(page: Page, selector: str) -> str | None:
         return None
 
 
-def _detail_attr(page: Page, selector: str, attr: str) -> str | None:
+def _attr(page: Page, selector: str, attr: str) -> str | None:
     try:
         el = page.query_selector(selector)
         return el.get_attribute(attr) if el else None
@@ -63,17 +68,8 @@ def _detail_attr(page: Page, selector: str, attr: str) -> str | None:
 
 def _check_captcha(page: Page) -> None:
     url = (page.url or "").lower()
-    body = ""
-    try:
-        body = (page.content() or "").lower()[:5000]
-    except Exception:  # noqa: BLE001
-        pass
-    if any(h in url or h in body for h in CAPTCHA_HINTS):
+    if any(h in url for h in CAPTCHA_HINTS):
         raise CaptchaDetected(page.url)
-
-
-def build_query(niche: str, city: str) -> str:
-    return f"{niche} em {city}".strip()
 
 
 def scrape(
@@ -86,11 +82,6 @@ def scrape(
     max_delay_ms: int,
     on_lead: Callable[[dict], bool],
 ) -> int:
-    """Roda o scraping. Chama on_lead(lead) para cada lead VÁLIDO encontrado.
-
-    on_lead deve retornar True se o lead foi inserido (não duplicado).
-    Retorna a quantidade de leads inseridos. Levanta CaptchaDetected em bloqueio.
-    """
     inserted = 0
     query = build_query(niche, city)
 
@@ -111,53 +102,41 @@ def scrape(
                 pass
 
         try:
+            # ---- Fase 1: coletar candidatos (nome + href) da lista ----
             page.goto(f"https://www.google.com/maps/search/{query}", wait_until="domcontentloaded")
             hb.human_pause(min_delay_ms, max_delay_ms)
             _check_captcha(page)
 
             try:
-                page.wait_for_selector(SELECTORS["results_feed"], timeout=15000)
+                page.wait_for_selector(SELECTORS["results_feed"], timeout=20000)
             except PWTimeout:
                 log.warning("Lista de resultados não carregou para '%s'", query)
                 return inserted
 
-            seen_hrefs: set[str] = set()
-            stale_rounds = 0
+            candidates = _collect_candidates(page, target_count, min_delay_ms, max_delay_ms)
+            log.info("Coletados %s candidatos na lista.", len(candidates))
 
-            while inserted < target_count and stale_rounds < 5:
-                cards = page.query_selector_all(SELECTORS["result_card"])
-                new_in_round = 0
+            # ---- Fase 2: abrir cada empresa e extrair ----
+            for name, href in candidates:
+                if inserted >= target_count:
+                    break
+                try:
+                    page.goto(href, wait_until="domcontentloaded")
+                    hb.human_pause(min_delay_ms, max_delay_ms)
+                    _check_captcha(page)
+                    page.wait_for_selector(SELECTORS["detail_name"], timeout=8000)
+                except CaptchaDetected:
+                    raise
+                except Exception:  # noqa: BLE001
+                    continue
 
-                for card in cards:
-                    if inserted >= target_count:
-                        break
-                    href = card.get_attribute("href")
-                    if not href or href in seen_hrefs:
-                        continue
-                    seen_hrefs.add(href)
-                    new_in_round += 1
-
-                    try:
-                        card.click()
-                        hb.human_pause(min_delay_ms, max_delay_ms)
-                        _check_captcha(page)
-                        page.wait_for_selector(SELECTORS["detail_name"], timeout=8000)
-                    except (PWTimeout, Exception):  # noqa: BLE001
-                        continue
-
-                    lead = _extract_detail(page, href)
-                    if lead is None:
-                        continue  # tem site de verdade, ou sem telefone -> descartado
-
-                    lead["niche"] = niche
-                    if on_lead(lead):
-                        inserted += 1
-
-                    hb.human_mouse_wiggle(page)
-
-                # rolar para carregar mais
-                hb.human_scroll(page, SELECTORS["results_feed"])
-                stale_rounds = stale_rounds + 1 if new_in_round == 0 else 0
+                lead = _extract_detail(page, href, fallback_name=name)
+                if lead is None:
+                    continue
+                lead["niche"] = niche
+                if on_lead(lead):
+                    inserted += 1
+                hb.human_mouse_wiggle(page)
 
             return inserted
         finally:
@@ -165,32 +144,59 @@ def scrape(
             browser.close()
 
 
-def _extract_detail(page: Page, maps_url: str) -> dict | None:
-    """Extrai dados do painel de detalhe. Retorna None se deve descartar o lead."""
-    name = _detail_text(page, SELECTORS["detail_name"])
-    if not name:
+def _collect_candidates(
+    page: Page, target_count: int, min_delay_ms: int, max_delay_ms: int
+) -> list[tuple[str, str]]:
+    """Rola a lista e coleta (nome, href) únicos. Coleta ~2x a meta (muitos têm site)."""
+    want = max(target_count * 2, target_count + 10)
+    seen: dict[str, str] = {}  # href -> name
+    stale = 0
+
+    while len(seen) < want and stale < 6:
+        links = page.query_selector_all(f'{SELECTORS["results_feed"]} {SELECTORS["result_link"]}')
+        before = len(seen)
+        for link in links:
+            try:
+                href = link.get_attribute("href")
+                name = (link.get_attribute("aria-label") or "").strip()
+            except Exception:  # noqa: BLE001
+                continue
+            if href and href not in seen and name.lower() not in BAD_NAMES:
+                seen[href] = name
+        stale = stale + 1 if len(seen) == before else 0
+        hb.human_scroll(page, SELECTORS["results_feed"])
+        hb.human_pause(min_delay_ms // 2, max_delay_ms // 2)
+
+    return [(name, href) for href, name in seen.items()]
+
+
+def _extract_detail(page: Page, maps_url: str, *, fallback_name: str) -> dict | None:
+    """Extrai dados da página de detalhe. Retorna None se deve descartar o lead."""
+    name = _text(page, SELECTORS["detail_name"]) or fallback_name
+    if not name or name.strip().lower() in BAD_NAMES:
         return None
 
-    website = _detail_attr(page, SELECTORS["website_btn"], "href")
+    website = _attr(page, SELECTORS["website_btn"], "href")
     site = parsers.classify_website(website)
     if site["has_website"]:
-        return None  # F01 RN-05: tem site de verdade -> descartar
+        return None  # tem site de verdade -> descartar
 
+    # telefone: aria-label do botão de telefone (ex.: "Telefone: (85) 3333-4444")
     raw_phone = None
-    phone_el = page.query_selector(SELECTORS["phone_btn"])
-    if phone_el:
-        raw_phone = phone_el.get_attribute("aria-label") or phone_el.inner_text()
+    el = page.query_selector(SELECTORS["phone_btn"])
+    if el:
+        raw_phone = el.get_attribute("aria-label") or el.inner_text()
     phone = parsers.normalize_phone_br(raw_phone)
     if not phone:
-        return None  # F01 RN-07: sem telefone válido -> inútil
+        return None  # sem telefone válido -> inútil
 
     return {
-        "name": name,
+        "name": name.strip(),
         "phone": phone,
         "raw_phone": (raw_phone or "").strip() or None,
-        "category_maps": _detail_text(page, SELECTORS["category"]),
-        "rating": parsers.parse_rating(_detail_text(page, SELECTORS["rating"])),
-        "num_reviews": parsers.parse_reviews(_detail_text(page, SELECTORS["reviews"])),
+        "category_maps": _text(page, SELECTORS["category"]),
+        "rating": parsers.parse_rating(_text(page, SELECTORS["rating"])),
+        "num_reviews": parsers.parse_reviews(_text(page, SELECTORS["reviews"])),
         "has_instagram": site["has_instagram"],
         "instagram_url": site["instagram_url"],
         "has_website": False,
