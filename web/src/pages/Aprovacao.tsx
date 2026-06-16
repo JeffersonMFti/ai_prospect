@@ -7,6 +7,7 @@ import {
 import { supabase } from '../lib/supabase';
 import type { Lead, Message } from '../lib/types';
 import { PageHeader, TierBadge, ScorePill, EmptyState, cn } from '../components/ui';
+import { LpPromptButton } from '../components/LpPromptButton';
 
 type LeadComMensagem = Lead & { messages: Message[] };
 
@@ -162,6 +163,7 @@ function CardLead({
           {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           {copied ? 'Copiado!' : 'Copiar mensagem'}
         </button>
+        <LpPromptButton lead={lead} />
         <button onClick={() => onEnviado(lead)} className="btn-ghost" title="Mover para Enviados no funil">
           <CheckCircle2 className="h-4 w-4" /> Marcar enviado
         </button>

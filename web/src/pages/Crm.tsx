@@ -6,6 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import type { Lead, LeadStatus, Message } from '../lib/types';
 import { PageHeader, Spinner, Select, cn } from '../components/ui';
+import { LpPromptButton } from '../components/LpPromptButton';
 
 type LeadCard = Lead & { messages: Pick<Message, 'text'>[] };
 
@@ -238,6 +239,7 @@ function CardCrm({
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
+        <LpPromptButton lead={lead} compact />
       </div>
 
       {/* mover de etapa por dropdown (alternativa ao arrastar) */}

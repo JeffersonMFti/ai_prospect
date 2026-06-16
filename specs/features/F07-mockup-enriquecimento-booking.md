@@ -1,4 +1,16 @@
-# F07 — Mockup visual da LP + Enriquecimento + Booking
+# F07 — Mockup/LP + Enriquecimento + Booking
+
+> ⚠️ ABORDAGEM ATUAL (pivot, implementado): em vez de renderizar um mockup (Gemini→HTML→print),
+> o sistema gera um **PROMPT profissional e completo** com todos os dados da empresa. Botão
+> **"Gerar prompt LP"** nos cards (CRM e Aprovação) → modal com o prompt → o Jefferson copia, cria
+> uma pasta, abre o **Claude Code** e gera a landing page REAL para mostrar ao cliente.
+> Implementação: `web/src/lib/lpPrompt.ts` (template + copy por nicho, client-side, instantâneo, sem
+> custo) + `web/src/components/LpPromptButton.tsx`. O enriquecimento abaixo (fotos, dono, sinais)
+> enriquece esse prompt. A pipeline de screenshot abaixo fica como alternativa futura (não usada).
+
+---
+
+## (histórico) Mockup renderizado — alternativa NÃO usada
 
 > O diferencial competitivo nº1 do produto: mandar na prospecção uma **prévia visual da landing page
 > do próprio prospect**. Decisão: Gemini gera o **HTML real** → Playwright printa (Caminho B).
