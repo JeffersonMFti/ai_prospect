@@ -84,6 +84,18 @@ function detectNiche(niche: string | null): NicheCopy {
   return NICHE_COPY.default;
 }
 
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'cliente'
+  );
+}
+
 /** Monta um prompt profissional e completo para construir a LP no Claude Code. */
 export function buildLpPrompt(lead: Lead): string {
   const niche = lead.niche ?? 'negócio local';
@@ -91,14 +103,18 @@ export function buildLpPrompt(lead: Lead): string {
   const wa = lead.phone ? `https://wa.me/${lead.phone}` : '(inserir o WhatsApp)';
   const photos = (lead as Lead & { photos?: string[] }).photos;
   const ownerName = (lead as Lead & { owner_name?: string }).owner_name;
+  const slug = slugify(lead.name);
 
   const linhas: string[] = [
     `# Tarefa: criar uma LANDING PAGE PREMIUM para "${lead.name}"`,
     ``,
-    `Você é um web designer e desenvolvedor sênior. Crie, nesta pasta, uma landing page de ALTA`,
-    `CONVERSÃO e visual PREMIUM em UM ÚNICO arquivo \`index.html\`, 100% self-contained: TODO o CSS`,
-    `(e qualquer JS) dentro do próprio arquivo (tags <style>/<script>). SEM build, SEM npm, SEM`,
-    `servidor, SEM dependências/CDN obrigatórios. O cliente precisa conseguir abrir o arquivo com`,
+    `📁 LOCAL DO ARQUIVO: crie a página em \`clientes/${slug}/index.html\` (crie a pasta se não existir).`,
+    `   NUNCA crie na raiz do projeto. Tudo dessa LP fica dentro de \`clientes/${slug}/\`.`,
+    ``,
+    `Você é o Claude Code (Opus 4.8) — capriche no nível máximo. Construa uma landing page de`,
+    `ALTÍSSIMO nível (visual premium + alta conversão) em UM ÚNICO arquivo \`index.html\`, 100%`,
+    `self-contained: TODO o CSS e JS dentro do próprio arquivo (tags <style>/<script>). SEM build,`,
+    `SEM npm, SEM servidor, SEM dependências/CDN obrigatórios. O cliente precisa abrir o arquivo com`,
     `DUPLO CLIQUE, direto no navegador, e ver a página perfeita — inclusive sem internet.`,
     `Fontes do Google podem entrar via <link> (com fallback para fonte do sistema se offline).`,
     ``,
@@ -140,11 +156,25 @@ export function buildLpPrompt(lead: Lead): string {
     `7. Depoimento (1, realista)`,
     `8. CTA final forte + rodapé com nome, contato e localização`,
     ``,
+    `## Vá ALÉM — recursos avançados (você é o Opus 4.8, mostre nível)`,
+    `- Animações de revelar ao rolar (IntersectionObserver), suaves e elegantes.`,
+    `- Header fixo que ganha blur/encolhe ao rolar; menu mobile (hambúrguer); smooth scroll nas âncoras.`,
+    `- Botão FLUTUANTE de WhatsApp (canto inferior direito), discreto e com leve pulso.`,
+    `- Hero com fundo sutilmente animado (gradiente em movimento ou brilho/formas em CSS puro).`,
+    `- Contadores que animam de 0 (ex.: ${lead.num_reviews ?? 'N'}+ clientes satisfeitos).`,
+    `- Carrossel de depoimentos e galeria com lightbox (clicar para ampliar).`,
+    `- FAQ em accordion. Microinterações em botões e cards (hover/active/foco).`,
+    `- SEO: <title>, meta description, Open Graph, lang="pt-BR", favicon (emoji via data URI).`,
+    `- JSON-LD schema.org "LocalBusiness" (nome, telefone, aggregateRating ${lead.rating ?? ''} com ${lead.num_reviews ?? 0} avaliações, cidade).`,
+    `- Acessibilidade (alt, contraste AA, foco visível) e performance (imagens lazy, zero libs pesadas).`,
+    `- TUDO em HTML + CSS + vanilla JS embutidos (sem frameworks/bundler), para manter o arquivo único.`,
+    ``,
     `## Regras`,
     `- Copy 100% em PT-BR, persuasiva e específica do nicho. PROIBIDO "Lorem ipsum".`,
     `- Todos os CTAs levam ao WhatsApp: ${wa}`,
-    `- Entregue UM ÚNICO arquivo \`index.html\`, sem dependências externas obrigatórias (CSS embutido),`,
-    `  que abra perfeitamente com DUPLO CLIQUE no navegador. Capriche no acabamento premium.`,
+    `- Salve em \`clientes/${slug}/index.html\` (nunca na raiz). UM ÚNICO arquivo, CSS+JS embutidos,`,
+    `  sem dependências obrigatórias, que abra perfeitamente com DUPLO CLIQUE. Acabamento premium.`,
+    `- Ao terminar, me diga o caminho do arquivo para eu abrir.`,
   ];
 
   return linhas.filter((l) => l !== undefined).join('\n');
