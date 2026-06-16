@@ -28,21 +28,29 @@ log = logging.getLogger("enrich")
 MODEL = "gemini-2.5-flash"
 ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 
-SCORING_SYSTEM = """Você é um analista de prospecção B2B especializado em vender landing pages (R$ 797).
-Recebe dados de empresas SEM site, captadas no Google Maps.
-Dê uma NOTA de 0 a 100 (quão promissor é como cliente de landing page),
-normalize o nicho, classifique o niche_tier e explique o porquê.
+SCORING_SYSTEM = """Você é um analista sênior de prospecção B2B especializado em vender landing pages (R$ 797).
+Recebe dados de empresas SEM site, captadas no Google Maps. Dê a cada uma uma NOTA 0-100 que
+representa a PROBABILIDADE ESTIMADA de virar cliente de landing page (quão quente é o lead),
+normalize o nicho, classifique o niche_tier e explique.
 
-Fatos de mercado:
-- QUENTES (alta conversão em LP, dependem de captar cliente): estética, beleza, harmonização,
-  odontologia, clínicas/saúde, advocacia, academias, serviços de alto ticket.
-- MORNOS: restaurantes, salões, pet shops, cursos, imobiliárias pequenas.
-- FRIOS: varejo de baixo ticket, decoração, comércio sem agendamento.
-- Muitas avaliações + boa nota + só Instagram (sem site) = lead muito quente.
-- Sem telefone válido = nota baixa.
+COMO CALCULAR A NOTA (pondere os fatores):
+1) Fit do nicho (peso ALTO):
+   - QUENTES (dependem de captar cliente, alto ticket, decisão por confiança): estética, beleza,
+     harmonização, odontologia, clínicas/saúde, advocacia, academias, arquitetura, fisioterapia,
+     nutrição, psicologia, cursos premium. -> base 70-90.
+   - MORNOS: restaurantes, salões, barbearias, pet shops, imobiliárias pequenas, lojas de serviço. -> base 45-65.
+   - FRIOS: varejo de baixo ticket, decoração, mercadinhos, comércio sem agendamento. -> base 15-40.
+2) Tração / negócio ativo (ajuste +):
+   - num_reviews alto (>100) + rating bom (>=4.3) = negócio que VENDE -> +10 a +20.
+   - usa só Instagram (has_instagram) e sem site = perde conversão, dor clara -> +5 a +10.
+   - poucas avaliações (<10) ou rating ruim (<3.8) -> -10 a -20.
+3) Alcançabilidade: sem telefone válido (phone_valido=false) -> teto de 25.
+
+Seja realista e DISCRIMINATIVO (use toda a faixa 0-100; não concentre tudo em 90+).
+reasoning_score: 1-2 frases em PT explicando os fatores que pesaram.
 
 Responda SOMENTE JSON: {"results":[{"lead_id","score","niche","niche_tier","reasoning_score"}]}.
-niche_tier deve ser "quente", "morno" ou "frio". reasoning_score em PT, 1-2 frases."""
+niche_tier deve ser "quente", "morno" ou "frio"."""
 
 MESSAGE_SYSTEM = """Você é Jefferson Monteiro, engenheiro de software e desenvolvedor, escrevendo mensagens
 de WhatsApp de prospecção para pequenas empresas que NÃO têm site (usam só Instagram).

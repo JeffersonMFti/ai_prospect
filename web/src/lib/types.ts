@@ -90,5 +90,9 @@ export interface Settings {
   default_city: string | null;
   message_signature: string;
   price_text: string;
+  business_hours_start: number;
+  business_hours_end: number;
+  follow_up_days: number;
+  max_follow_ups: number;
   updated_at: string;
 }
