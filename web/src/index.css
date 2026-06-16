@@ -41,9 +41,10 @@ body {
 
   /* Botão primário com gradiente */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500
-           px-5 py-2.5 text-sm font-semibold text-white shadow-glow-sm transition-all
-           hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500
+           px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(139,92,246,0.5)] transition-all
+           hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.55)] active:scale-[0.98]
+           disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.02]
