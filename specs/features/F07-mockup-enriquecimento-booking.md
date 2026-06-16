@@ -2,8 +2,8 @@
 
 > O diferencial competitivo nº1 do produto: mandar na prospecção uma **prévia visual da landing page
 > do próprio prospect**. Decisão: Gemini gera o **HTML real** → Playwright printa (Caminho B).
-> Modelo do HTML: **configurável** via env `GEMINI_HTML_MODEL` — usar o **Gemini mais capaz disponível
-> na conta** (padrão `gemini-2.5-pro`; se houver um modelo mais novo/3.x na conta, basta apontar o ID).
+> Modelo do HTML: **`gemini-3.1-pro`** (escolha do Jefferson — máxima qualidade), via env
+> `GEMINI_HTML_MODEL` (configurável; se a API rejeitar o ID, conferir o nome exato no AI Studio).
 > Scoring/mensagem seguem no flash (barato). Trocar o modelo do HTML é 1 linha de config.
 
 ## Objetivo
@@ -115,15 +115,54 @@ O que achou?"*
 ---
 
 ## Enriquecimento (alimenta o mockup e a personalização)
-Campos novos em `leads` (migration futura):
-- `photo_url text` — foto principal do Google Maps (scraper pega no painel de detalhe).
-- `owner_name text` — provável primeiro nome do dono (Gemini infere do nome do negócio).
-- `instagram_handle text` — @ quando o Maps linka.
-- `mockup_url text` — URL do PNG do mockup gerado.
-- (futuro) sinais: `opening_hours`, `price_level`, p/ priorização no scoring.
 
-Scraper: capturar `photo_url` (img principal) e `instagram_handle`.
-Enrich: pedir ao Gemini o `owner_name` provável junto do scoring (ou passo dedicado).
+### A) Imagens da marca (capa + galeria do mockup)
+Hierarquia de fontes, da mais confiável para a mais frágil:
+1. **Fotos do Google Maps (PRIMÁRIA, confiável):** o painel de detalhe tem várias fotos POSTADAS PELO
+   PRÓPRIO NEGÓCIO (fachada, ambiente, produtos/serviços). O scraper coleta N URLs (`photos text[]`).
+   → viram o HERO (1ª foto) e a GALERIA do mockup. São, na prática, "as fotos da marca".
+2. **Logo/avatar:** a foto de perfil do negócio no Maps costuma ser o logo → usar no header do mockup
+   (`logo_url`).
+3. **Instagram (BEST-EFFORT, frágil — ToS):** dá pra pegar o `@` e a foto de perfil com facilidade.
+   Puxar o GRID de fotos do Instagram é instável (login wall, rate limit, muda DOM) e arriscado.
+   → MVP: usar só `@` + foto de perfil. O grid fica como "tentar se der", sem depender dele.
+   ⚠️ Honestidade: priorizar Maps; Instagram a fundo não é confiável e pode bloquear.
+
+> Resultado: o mockup usa **as fotos reais do negócio** (via Maps) — exatamente o efeito "olha a SUA
+> página com as SUAS fotos", sem depender de scraping arriscado do Instagram.
+
+### B) Personalização textual
+- `owner_name` — Gemini infere o provável primeiro nome do dono a partir do nome do negócio
+  ("Dra Daniela Santos" → "Daniela"; quando não dá, usa saudação neutra).
+- `instagram_handle` — @ quando o Maps linka.
+
+### C) Sinais de prioridade (entram no scoring p/ mirar quem está "ativo e vendendo")
+- `num_reviews` + `rating` (já temos).
+- **Recência/velocidade de avaliações** — avaliações recentes = negócio movimentado (scraper lê datas).
+- **Tem fotos / perfil rico** — sinal de engajamento.
+- `price_level` (€/€€€) e `opening_hours` — ticket e operação ativa.
+- Heurística: muitas avaliações + recentes + só Instagram = ALTA prioridade (vende e precisa de site).
+
+### D) Biblioteca de copy por nicho (copy "bem estabelecida")
+Um dicionário de referência (few-shot) que guia o Gemini a usar **ângulos comprovados por nicho**, tanto
+no MOCKUP quanto na MENSAGEM. Exemplos (expandir com o tempo):
+- **Estética/beleza:** dor=agenda cheia mas depende de DM; promessa=agendamento online + portfólio que vende.
+  headline ex.: "Sua beleza merece ser encontrada."
+- **Odontologia/saúde:** confiança + facilidade de agendar; "Cuidado que inspira confiança."
+- **Advocacia:** autoridade + discrição; "Seus direitos em mãos experientes."
+- **Academia/fitness:** energia + resultado; "Comece hoje. Resultado de verdade."
+- **Gastronomia:** apetite + cardápio/reserva; "Dá água na boca — e agora também online."
+Implementação: `agent/niche_copy.py` (dict niche→{dor, promessa, headline, paleta, tom}); o builder de
+prompt injeta o bloco do nicho detectado. Fallback genérico se nicho desconhecido.
+
+### Campos novos em `leads` / `settings` (migration 0006)
+- `leads`: `photos text[]`, `logo_url text`, `owner_name text`, `instagram_handle text`,
+  `mockup_url text`, `price_level text`, `opening_hours text`.
+- `settings`: `booking_url text`.
+- Storage: bucket público `mockups`.
+
+Scraper: capturar `photos[]`, `logo_url`, `instagram_handle`, `price_level`, `opening_hours`.
+Enrich: Gemini infere `owner_name`; aplica a biblioteca de copy do nicho.
 
 ---
 
@@ -138,11 +177,14 @@ Enrich: pedir ao Gemini o `owner_name` provável junto do scoring (ou passo dedi
 
 ## Data model (migration 0006 — planejada)
 ```sql
-alter table leads add column if not exists photo_url text;
-alter table leads add column if not exists owner_name text;
+alter table leads add column if not exists photos          text[];   -- fotos da marca (Maps)
+alter table leads add column if not exists logo_url        text;     -- avatar/logo (Maps)
+alter table leads add column if not exists owner_name      text;
 alter table leads add column if not exists instagram_handle text;
-alter table leads add column if not exists mockup_url text;
-alter table settings add column if not exists booking_url text;
+alter table leads add column if not exists mockup_url      text;
+alter table leads add column if not exists price_level     text;
+alter table leads add column if not exists opening_hours   text;
+alter table settings add column if not exists booking_url  text;
 -- Storage: criar bucket público 'mockups'.
 ```
 
