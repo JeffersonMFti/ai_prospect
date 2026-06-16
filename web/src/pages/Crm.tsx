@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   KanbanSquare, Phone, MapPin, Star, Instagram, ExternalLink,
-  MessageSquare, StickyNote, ChevronDown,
+  MessageSquare, StickyNote, ChevronDown, Copy, Check, Plus, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Lead, LeadStatus, Message } from '../lib/types';
@@ -43,6 +43,7 @@ export default function Crm() {
   const [leads, setLeads] = useState<LeadCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [over, setOver] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   async function load() {
     const { data } = await supabase
@@ -81,11 +82,18 @@ export default function Crm() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        icon={KanbanSquare}
-        title="CRM"
-        subtitle="Arraste os cards conforme conversa com os leads · o Dashboard atualiza sozinho"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader
+          icon={KanbanSquare}
+          title="CRM"
+          subtitle="Arraste (ou use o seletor) conforme conversa · o Dashboard atualiza sozinho"
+        />
+        <button onClick={() => setAdding(true)} className="btn-ghost mb-6">
+          <Plus className="h-4 w-4" /> Lead manual
+        </button>
+      </div>
+
+      {adding && <AddLeadModal onClose={() => setAdding(false)} onAdded={load} />}
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -147,11 +155,23 @@ function CardCrm({
   onStatus: (id: string, status: LeadStatus) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState(lead.notes ?? '');
   const score = lead.score ?? 0;
   const scoreColor = score >= 80 ? 'bg-rose-400' : score >= 55 ? 'bg-amber-400' : 'bg-sky-400';
-  const waUrl = lead.phone ? `https://wa.me/${lead.phone}` : null;
+  const msgText = lead.messages?.[0]?.text ?? '';
+  const waUrl = lead.phone
+    ? `https://wa.me/${lead.phone}${msgText ? `?text=${encodeURIComponent(msgText)}` : ''}`
+    : null;
   const region = lead.address ?? lead.category_maps ?? '';
+
+  function copyMsg(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!msgText) return;
+    navigator.clipboard.writeText(msgText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div
@@ -203,6 +223,11 @@ function CardCrm({
             <Phone className="h-3.5 w-3.5" /> WhatsApp
           </a>
         )}
+        {msgText && (
+          <button onClick={copyMsg} className="btn-ghost px-2 py-1.5" title="Copiar mensagem">
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+          </button>
+        )}
         {lead.instagram_url && (
           <a href={lead.instagram_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="btn-ghost px-2 py-1.5" title="Instagram">
             <Instagram className="h-3.5 w-3.5" />
@@ -252,5 +277,89 @@ function CardCrm({
         </div>
       )}
     </div>
+  );
+}
+
+function normalizePhoneBR(raw: string): string | null {
+  const d = raw.replace(/\D/g, '');
+  if (!d) return null;
+  const local = d.startsWith('55') && d.length >= 12 ? d.slice(2) : d;
+  if (local.length !== 10 && local.length !== 11) return null;
+  return '55' + local;
+}
+
+function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [niche, setNiche] = useState('');
+  const [status, setStatus] = useState<LeadStatus>('respondeu');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function salvar() {
+    if (!name.trim()) return setError('Informe o nome.');
+    const normalized = phone.trim() ? normalizePhoneBR(phone) : null;
+    if (phone.trim() && !normalized) return setError('Telefone inválido (use DDD + número).');
+    setSaving(true);
+    setError(null);
+    const { error: e } = await supabase.from('leads').insert({
+      name: name.trim(),
+      phone: normalized,
+      niche: niche.trim() || null,
+      status,
+      notes: notes.trim() || null,
+      has_website: false,
+      has_instagram: false,
+    });
+    setSaving(false);
+    if (e) return setError(e.message);
+    onAdded();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="card w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-semibold">Adicionar lead manual</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>
+        </div>
+
+        {error && <div className="mb-3 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] p-2 text-xs text-rose-300">{error}</div>}
+
+        <div className="space-y-3">
+          <Campo label="Nome *"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Okamoto Beauty" /></Campo>
+          <Campo label="WhatsApp (DDD + número)"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="85 99999-9999" /></Campo>
+          <Campo label="Nicho"><input className="input" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="estética" /></Campo>
+          <Campo label="Etapa"><Select value={status} onChange={setStatus} options={STATUS_OPTIONS} /></Campo>
+          <Campo label="Anotações">
+            <textarea
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-sm text-zinc-200 outline-none focus:border-violet-500/50"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Onde encontrou, o que conversou…"
+            />
+          </Campo>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="btn-ghost">Cancelar</button>
+          <button onClick={salvar} disabled={saving} className="btn-primary">
+            {saving ? <Spinner className="h-4 w-4" /> : <Plus className="h-4 w-4" />} Adicionar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-sm">
+      <span className="mb-1 block font-medium text-zinc-400">{label}</span>
+      {children}
+    </label>
   );
 }

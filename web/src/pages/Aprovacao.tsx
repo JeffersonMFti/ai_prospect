@@ -2,43 +2,45 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CheckCircle2, Star, MessageSquare, Phone, Instagram, Brain,
-  Send, X, ChevronDown, Inbox,
+  Send, X, ChevronDown, Inbox, Copy, Check,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Lead, Message } from '../lib/types';
-import { PageHeader, TierBadge, ScorePill, EmptyState, Spinner, cn } from '../components/ui';
+import { PageHeader, TierBadge, ScorePill, EmptyState, cn } from '../components/ui';
 
 type LeadComMensagem = Lead & { messages: Message[] };
+
+function waLink(phone: string | null, text: string): string | null {
+  if (!phone) return null;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
 
 export default function Aprovacao() {
   const [leads, setLeads] = useState<LeadComMensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
+    // Mostra todo lead que JÁ TEM mensagem e ainda não foi enviado/descartado
+    // (status 'pronto' ou 'pontuado'), para nenhuma mensagem "sumir" por nuance de status.
     const { data, error: e } = await supabase
       .from('leads')
       .select('*, messages(*)')
-      .eq('status', 'pronto')
+      .in('status', ['pronto', 'pontuado'])
       .order('score', { ascending: false });
     setLoading(false);
     if (e) return setError(e.message);
-    setLeads((data as LeadComMensagem[]) ?? []);
+    const comMensagem = ((data as LeadComMensagem[]) ?? []).filter((l) => l.messages && l.messages.length > 0);
+    setLeads(comMensagem);
   }
 
   useEffect(() => {
     load();
   }, []);
 
-  async function aprovar(lead: LeadComMensagem) {
-    const msg = lead.messages[0];
-    if (!msg) return;
-    setBusy(lead.id);
-    const { error: e } = await supabase.functions.invoke('enqueue-sends', { body: { message_ids: [msg.id] } });
-    setBusy(null);
-    if (e) return setError(`Falha ao agendar envio: ${e.message}`);
+  async function marcarEnviado(lead: LeadComMensagem) {
+    await supabase.from('leads').update({ status: 'enviado', last_contact_at: new Date().toISOString() }).eq('id', lead.id);
     setLeads((prev) => prev.filter((l) => l.id !== lead.id));
   }
 
@@ -52,7 +54,7 @@ export default function Aprovacao() {
       <PageHeader
         icon={CheckCircle2}
         title="Aprovação"
-        subtitle={loading ? 'Carregando…' : `${leads.length} leads prontos · do mais quente ao mais morno`}
+        subtitle={loading ? 'Carregando…' : `${leads.length} leads prontos · abra o WhatsApp, envie e marque como enviado`}
       />
 
       {error && (
@@ -77,7 +79,7 @@ export default function Aprovacao() {
         />
       ) : (
         leads.map((lead) => (
-          <CardLead key={lead.id} lead={lead} busy={busy === lead.id} onAprovar={aprovar} onDescartar={descartar} />
+          <CardLead key={lead.id} lead={lead} onEnviado={marcarEnviado} onDescartar={descartar} />
         ))
       )}
     </div>
@@ -86,17 +88,24 @@ export default function Aprovacao() {
 
 function CardLead({
   lead,
-  busy,
-  onAprovar,
+  onEnviado,
   onDescartar,
 }: {
   lead: LeadComMensagem;
-  busy: boolean;
-  onAprovar: (l: LeadComMensagem) => void;
+  onEnviado: (l: LeadComMensagem) => void;
   onDescartar: (l: LeadComMensagem) => void;
 }) {
   const [showWhy, setShowWhy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const msg = lead.messages[0];
+  const link = waLink(lead.phone, msg?.text ?? '');
+
+  function copy() {
+    if (!msg?.text) return;
+    navigator.clipboard.writeText(msg.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div className="card card-hover animate-fade-in">
@@ -143,12 +152,20 @@ function CardLead({
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
-        <button onClick={() => onAprovar(lead)} disabled={busy} className="btn-success disabled:opacity-50">
-          {busy ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          Aprovar e enviar
+      <div className="mt-4 flex flex-wrap gap-2">
+        {link && (
+          <a href={link} target="_blank" rel="noreferrer" className="btn-success">
+            <Send className="h-4 w-4" /> Abrir no WhatsApp
+          </a>
+        )}
+        <button onClick={copy} className="btn-ghost">
+          {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+          {copied ? 'Copiado!' : 'Copiar mensagem'}
         </button>
-        <button onClick={() => onDescartar(lead)} className="btn-ghost">
+        <button onClick={() => onEnviado(lead)} className="btn-ghost" title="Mover para Enviados no funil">
+          <CheckCircle2 className="h-4 w-4" /> Marcar enviado
+        </button>
+        <button onClick={() => onDescartar(lead)} className="btn-ghost text-zinc-400">
           <X className="h-4 w-4" /> Descartar
         </button>
       </div>
