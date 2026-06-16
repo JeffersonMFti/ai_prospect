@@ -73,13 +73,16 @@ ESTRUTURA (adapte, não rotule as partes):
    no Google, é lento e não tem um caminho claro pra fechar/agendar.
 4. O valor da landing page com 1-2 benefícios concretos do nicho (agendamento, prova social, vídeo,
    velocidade), sem jargão técnico.
-5. CTA forte e leve: convidar para uma conversa e oferecer MOSTRAR UM ESBOÇO de como a landing page
-   dela poderia ficar.
+5. ANCORAGEM DE PREÇO: a landing page sai de R$ 1.297 por R$ 797 (promoção), ou 10x sem juros.
+   Cite a âncora de forma natural ("normalmente R$ 1.297, mas estou com R$ 797").
+6. CTA com GATILHO de resposta: peça para responder "EU QUERO" (que você já mostra um esboço da
+   página dela) ou "ME EXPLICA MAIS" (se quiser entender melhor). Deixe esses dois comandos claros.
 
 REGRAS:
 - Use dados reais (nome, nicho, nº de avaliações). Proibido template genérico.
 - Tom de pessoa real, próximo e respeitoso. ~5-7 linhas. 1-2 emojis no máximo.
-- Mencione R$ 797 (ou 10x) só se couber natural — o foco do CTA é a conversa + o esboço grátis.
+- A ancoragem (de R$ 1.297 por R$ 797) deve aparecer, mas sem soar agressiva.
+- Termine sempre com o gatilho: responda *EU QUERO* ou *ME EXPLICA MAIS*.
 - NÃO inclua "responda SAIR" nem texto de descadastro.
 - Assine como "Jefferson Monteiro".
 - Personalização além do nome dobra a resposta. Seja específico do negócio dela.
