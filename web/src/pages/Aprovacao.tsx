@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
+import {
+  CheckCircle2, Star, MessageSquare, Phone, Instagram, Brain,
+  Send, X, ChevronDown, Inbox,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Lead, Message } from '../lib/types';
+import { PageHeader, TierBadge, ScorePill, EmptyState, Spinner, cn } from '../components/ui';
 
 type LeadComMensagem = Lead & { messages: Message[] };
-
-const tierStyle: Record<string, string> = {
-  quente: 'bg-red-500/15 text-red-300 border-red-500/30',
-  morno: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  frio: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-};
 
 export default function Aprovacao() {
   const [leads, setLeads] = useState<LeadComMensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -34,15 +34,10 @@ export default function Aprovacao() {
   async function aprovar(lead: LeadComMensagem) {
     const msg = lead.messages[0];
     if (!msg) return;
-    // Chama a Edge Function enqueue-sends: aprova a mensagem e agenda o envio
-    // na fila respeitando o intervalo de 3 min (throttle anti-ban).
-    const { error: e } = await supabase.functions.invoke('enqueue-sends', {
-      body: { message_ids: [msg.id] },
-    });
-    if (e) {
-      setError(`Falha ao agendar envio: ${e.message}`);
-      return;
-    }
+    setBusy(lead.id);
+    const { error: e } = await supabase.functions.invoke('enqueue-sends', { body: { message_ids: [msg.id] } });
+    setBusy(null);
+    if (e) return setError(`Falha ao agendar envio: ${e.message}`);
     setLeads((prev) => prev.filter((l) => l.id !== lead.id));
   }
 
@@ -51,31 +46,51 @@ export default function Aprovacao() {
     setLeads((prev) => prev.filter((l) => l.id !== lead.id));
   }
 
-  if (loading) return <p className="text-zinc-400">Carregando leads…</p>;
-  if (error) return <p className="text-red-300">{error}</p>;
-  if (leads.length === 0)
-    return (
-      <div className="card text-center text-zinc-400">
-        Nenhum lead pronto para aprovação. Rode um mapeamento e aguarde a IA pontuar/escrever.
-      </div>
-    );
-
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Aprovação — {leads.length} prontos</h1>
-      {leads.map((lead) => (
-        <CardLead key={lead.id} lead={lead} onAprovar={aprovar} onDescartar={descartar} />
-      ))}
+    <div className="animate-fade-in space-y-5">
+      <PageHeader
+        icon={CheckCircle2}
+        title="Aprovação"
+        subtitle={loading ? 'Carregando…' : `${leads.length} leads prontos · do mais quente ao mais morno`}
+      />
+
+      {error && (
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] p-4 text-sm text-rose-300">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="space-y-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card space-y-3">
+              <div className="skeleton h-5 w-1/3" />
+              <div className="skeleton h-20 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : leads.length === 0 ? (
+        <EmptyState
+          icon={Inbox}
+          title="Nenhum lead pronto"
+          description="Rode um mapeamento e deixe a IA pontuar e escrever as mensagens. Eles aparecem aqui."
+          action={<a href="/mapeamento" className="btn-primary">Ir para Mapeamento</a>}
+        />
+      ) : (
+        leads.map((lead) => (
+          <CardLead key={lead.id} lead={lead} busy={busy === lead.id} onAprovar={aprovar} onDescartar={descartar} />
+        ))
+      )}
     </div>
   );
 }
 
 function CardLead({
   lead,
+  busy,
   onAprovar,
   onDescartar,
 }: {
   lead: LeadComMensagem;
+  busy: boolean;
   onAprovar: (l: LeadComMensagem) => void;
   onDescartar: (l: LeadComMensagem) => void;
 }) {
@@ -83,37 +98,43 @@ function CardLead({
   const msg = lead.messages[0];
 
   return (
-    <div className="card">
+    <div className="card card-hover animate-fade-in">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-lg font-semibold">{lead.name}</span>
-        <span className={`rounded-full border px-2 py-0.5 text-xs ${tierStyle[lead.niche_tier ?? 'frio']}`}>
-          {lead.niche ?? 'nicho?'} · {lead.niche_tier ?? '—'}
-        </span>
-        <span className="ml-auto rounded-md bg-zinc-800 px-2 py-1 text-sm font-bold text-brand">
-          🔥 {lead.score ?? '—'}
-        </span>
+        <h3 className="text-lg font-semibold tracking-tight">{lead.name}</h3>
+        <TierBadge tier={lead.niche_tier} />
+        <span className="text-sm text-zinc-500">{lead.niche}</span>
+        <div className="ml-auto">
+          <ScorePill score={lead.score} />
+        </div>
       </div>
 
-      <div className="mt-1 text-xs text-zinc-500">
-        {lead.phone ?? 'sem telefone'} · {lead.num_reviews ?? 0} avaliações · ⭐ {lead.rating ?? '—'}
-        {lead.has_instagram && ' · usa Instagram'}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+        <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{lead.phone ?? 'sem telefone'}</span>
+        <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5" />{lead.rating ?? '—'} · {lead.num_reviews ?? 0} aval.</span>
+        {lead.has_instagram && <span className="inline-flex items-center gap-1"><Instagram className="h-3.5 w-3.5" />Instagram</span>}
       </div>
 
-      <p className="mt-3 whitespace-pre-wrap rounded-lg bg-zinc-950 p-3 text-sm text-zinc-200">
-        {msg?.text ?? '(sem mensagem gerada)'}
-      </p>
+      <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-white/[0.06] bg-black/20 p-4">
+        <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">{msg?.text ?? '(sem mensagem)'}</p>
+      </div>
 
       {msg?.justification && (
-        <div className="mt-2">
-          <button onClick={() => setShowWhy((v) => !v)} className="text-xs text-brand hover:underline">
-            {showWhy ? '▼' : '▶'} Por que essa mensagem? (raciocínio da IA)
+        <div className="mt-3">
+          <button
+            onClick={() => setShowWhy((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-400 transition hover:text-brand-300"
+          >
+            <Brain className="h-3.5 w-3.5" />
+            Por que essa mensagem?
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showWhy && 'rotate-180')} />
           </button>
           {showWhy && (
-            <div className="mt-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-xs text-zinc-400">
+            <div className="mt-2 animate-fade-in rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs leading-relaxed text-zinc-400">
               {msg.justification}
               {lead.reasoning_score && (
-                <p className="mt-2 border-t border-zinc-800 pt-2">
-                  <strong>Nota:</strong> {lead.reasoning_score}
+                <p className="mt-2 border-t border-white/[0.06] pt-2">
+                  <span className="font-semibold text-zinc-300">Nota:</span> {lead.reasoning_score}
                 </p>
               )}
             </div>
@@ -122,17 +143,12 @@ function CardLead({
       )}
 
       <div className="mt-4 flex gap-2">
-        <button
-          onClick={() => onAprovar(lead)}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-        >
-          ✅ Aprovar e enviar
+        <button onClick={() => onAprovar(lead)} disabled={busy} className="btn-success disabled:opacity-50">
+          {busy ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          Aprovar e enviar
         </button>
-        <button
-          onClick={() => onDescartar(lead)}
-          className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
-        >
-          Descartar
+        <button onClick={() => onDescartar(lead)} className="btn-ghost">
+          <X className="h-4 w-4" /> Descartar
         </button>
       </div>
     </div>

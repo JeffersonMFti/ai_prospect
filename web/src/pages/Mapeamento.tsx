@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Map, Rocket, Sparkles, AlertTriangle, ArrowRight, RotateCcw } from 'lucide-react';
 import { useScrapeJob } from '../hooks/useScrapeJob';
+import { PageHeader, Spinner } from '../components/ui';
+import type { ScrapeJob } from '../lib/types';
 
 export default function Mapeamento() {
   const { job, error, creating, startMapping, reset } = useScrapeJob();
@@ -8,7 +11,6 @@ export default function Mapeamento() {
   const [target, setTarget] = useState(50);
   const [pendingTooLong, setPendingTooLong] = useState(false);
 
-  // Aviso "o agente local está ligado?" se ficar pending por >30s
   useEffect(() => {
     if (job?.status !== 'pending') {
       setPendingTooLong(false);
@@ -21,16 +23,15 @@ export default function Mapeamento() {
   const isRunning = job && (job.status === 'pending' || job.status === 'running');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Mapeamento de empresas</h1>
-        <p className="text-sm text-zinc-400">
-          Garimpa empresas <strong>sem site</strong> no Google Maps. O agente local precisa estar ligado.
-        </p>
-      </div>
+    <div className="animate-fade-in space-y-6">
+      <PageHeader
+        icon={Map}
+        title="Mapeamento de empresas"
+        subtitle="Garimpa empresas sem site no Google Maps · o agente local precisa estar ligado"
+      />
 
       {!isRunning && (
-        <div className="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 sm:grid-cols-3">
+        <div className="card grid gap-4 sm:grid-cols-3">
           <Field label="Nicho">
             <input className="input" value={niche} onChange={(e) => setNiche(e.target.value)} />
           </Field>
@@ -49,18 +50,22 @@ export default function Mapeamento() {
           </Field>
           <div className="sm:col-span-3">
             <button
-              className="rounded-lg bg-brand px-5 py-2.5 font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+              className="btn-primary w-full sm:w-auto"
               disabled={creating || !niche || !city}
               onClick={() => startMapping({ niche, city, target_count: target })}
             >
-              {creating ? 'Criando...' : '🚀 Começar Mapeamento'}
+              {creating ? <Spinner className="h-4 w-4" /> : <Rocket className="h-4 w-4" />}
+              {creating ? 'Criando…' : 'Começar Mapeamento'}
             </button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">{error}</div>
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] p-4 text-sm text-rose-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {error}
+        </div>
       )}
 
       {job && <ProgressCard job={job} pendingTooLong={pendingTooLong} onReset={reset} />}
@@ -73,71 +78,78 @@ function ProgressCard({
   pendingTooLong,
   onReset,
 }: {
-  job: import('../lib/types').ScrapeJob;
+  job: ScrapeJob;
   pendingTooLong: boolean;
   onReset: () => void;
 }) {
+  const pct = job.target_count ? Math.min(100, Math.round((job.found_count / job.target_count) * 100)) : 0;
+
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center">
+    <div className="card animate-fade-in text-center">
       {job.status === 'pending' && (
-        <>
-          <Spinner />
-          <p className="mt-3 text-zinc-300">Aguardando o agente local pegar o trabalho…</p>
+        <div className="py-6">
+          <Spinner className="mx-auto h-9 w-9" />
+          <p className="mt-4 text-zinc-300">Aguardando o agente local pegar o trabalho…</p>
           {pendingTooLong && (
-            <p className="mt-2 text-sm text-amber-400">
-              ⚠️ Demorando… o <strong>agente local</strong> está ligado na sua máquina? (rode <code>python main.py</code>)
+            <p className="mt-2 flex items-center justify-center gap-2 text-sm text-amber-400">
+              <AlertTriangle className="h-4 w-4" />O agente local está ligado? (rode <code className="font-mono">python main.py</code>)
             </p>
           )}
-        </>
+        </div>
       )}
 
       {job.status === 'running' && (
-        <>
-          <Spinner />
-          <p className="mt-3 text-lg text-zinc-300">🔄 Mapeando…</p>
-          <p className="mt-1 text-5xl font-extrabold text-brand">{job.found_count}</p>
-          <p className="text-sm text-zinc-500">empresas captadas (meta: {job.target_count})</p>
-        </>
+        <div className="py-4">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300 ring-1 ring-brand-500/20">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse-glow" /> Mapeando ao vivo
+          </div>
+          <p className="bg-gradient-to-b from-white to-brand-300 bg-clip-text text-7xl font-extrabold tracking-tight text-transparent">
+            {job.found_count}
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">de {job.target_count} empresas captadas</p>
+          <div className="mx-auto mt-5 h-2 max-w-sm overflow-hidden rounded-full bg-white/[0.06]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
       )}
 
       {job.status === 'done' && (
-        <>
-          <p className="text-5xl font-extrabold text-emerald-400">✅ {job.found_count}</p>
-          <p className="mt-1 text-zinc-300">empresas captadas!</p>
-          <div className="mt-4 flex justify-center gap-3">
-            <a href="/aprovacao" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
-              Ver leads →
+        <div className="py-6">
+          <p className="bg-gradient-to-b from-emerald-200 to-emerald-500 bg-clip-text text-6xl font-extrabold text-transparent">
+            {job.found_count}
+          </p>
+          <p className="mt-2 text-zinc-300">empresas captadas! 🎉</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <a href="/aprovacao" className="btn-primary">
+              Ver leads <ArrowRight className="h-4 w-4" />
             </a>
-            <button onClick={onReset} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm">
-              Novo mapeamento
+            <button onClick={onReset} className="btn-ghost">
+              <RotateCcw className="h-4 w-4" /> Novo mapeamento
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {job.status === 'error' && (
-        <>
-          <p className="text-2xl">⚠️</p>
-          <p className="mt-2 text-red-300">{job.error_message ?? 'Erro no mapeamento.'}</p>
-          <button onClick={onReset} className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm">
-            Tentar de novo
+        <div className="py-6">
+          <AlertTriangle className="mx-auto h-8 w-8 text-rose-400" />
+          <p className="mt-3 text-rose-300">{job.error_message ?? 'Erro no mapeamento.'}</p>
+          <button onClick={onReset} className="btn-ghost mt-5">
+            <RotateCcw className="h-4 w-4" /> Tentar de novo
           </button>
-        </>
+        </div>
       )}
     </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-brand" />
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-zinc-400">{label}</span>
+      <span className="mb-1.5 block font-medium text-zinc-400">{label}</span>
       {children}
     </label>
   );
