@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CheckCircle2, Star, MessageSquare, Phone, Instagram, Brain,
   Send, X, ChevronDown, Inbox,
@@ -72,7 +73,7 @@ export default function Aprovacao() {
           icon={Inbox}
           title="Nenhum lead pronto"
           description="Rode um mapeamento e deixe a IA pontuar e escrever as mensagens. Eles aparecem aqui."
-          action={<a href="/mapeamento" className="btn-primary">Ir para Mapeamento</a>}
+          action={<Link to="/mapeamento" className="btn-primary">Ir para Mapeamento</Link>}
         />
       ) : (
         leads.map((lead) => (

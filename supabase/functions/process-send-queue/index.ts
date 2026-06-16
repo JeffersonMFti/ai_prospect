@@ -50,17 +50,27 @@ Deno.serve(async (req) => {
       .limit(1);
 
     const item = queued?.[0] as
-      | { id: string; lead_id: string; message_id: string; leads: { status: string; phone: string | null } | null; messages: { text: string } | null }
+      | {
+          id: string;
+          lead_id: string;
+          message_id: string;
+          leads: { status: string; phone: string | null } | { status: string; phone: string | null }[] | null;
+          messages: { text: string } | { text: string }[] | null;
+        }
       | undefined;
     if (!item) return json({ sent: 0, reason: 'empty' });
 
+    // PostgREST pode retornar embed to-one como objeto OU array — normaliza
+    const lead = Array.isArray(item.leads) ? item.leads[0] : item.leads;
+    const message = Array.isArray(item.messages) ? item.messages[0] : item.messages;
+
     // opt-out: lead pediu para não receber -> cancela
-    if (item.leads?.status === 'nao_perturbe') {
+    if (lead?.status === 'nao_perturbe') {
       await db.from('sends').update({ status: 'cancelado' }).eq('id', item.id);
       return json({ sent: 0, reason: 'opt_out' });
     }
 
-    const phone = item.leads?.phone ?? null;
+    const phone = lead?.phone ?? null;
     if (!isValidPhone(phone)) {
       await db.from('sends').update({ status: 'falhou', error_message: 'telefone inválido' }).eq('id', item.id);
       return json({ sent: 0, reason: 'invalid_phone' });
@@ -68,7 +78,7 @@ Deno.serve(async (req) => {
 
     // 4) dispara
     try {
-      const result = await sendText(phone, item.messages?.text ?? '');
+      const result = await sendText(phone, message?.text ?? '');
       if (result.ok) {
         await db
           .from('sends')

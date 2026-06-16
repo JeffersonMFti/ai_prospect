@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Map, Rocket, Sparkles, AlertTriangle, ArrowRight, RotateCcw } from 'lucide-react';
 import { useScrapeJob } from '../hooks/useScrapeJob';
 import { PageHeader, Spinner } from '../components/ui';
@@ -123,9 +124,9 @@ function ProgressCard({
           </p>
           <p className="mt-2 text-zinc-300">empresas captadas! 🎉</p>
           <div className="mt-6 flex justify-center gap-3">
-            <a href="/aprovacao" className="btn-primary">
+            <Link to="/aprovacao" className="btn-primary">
               Ver leads <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <button onClick={onReset} className="btn-ghost">
               <RotateCcw className="h-4 w-4" /> Novo mapeamento
             </button>
