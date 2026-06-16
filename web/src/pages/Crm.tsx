@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   KanbanSquare, Phone, MapPin, Star, Instagram, ExternalLink,
   MessageSquare, StickyNote, ChevronDown, Copy, Check, Plus, X,
@@ -320,9 +321,9 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     onClose();
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="card w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold">Adicionar lead manual</h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>
@@ -353,7 +354,8 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

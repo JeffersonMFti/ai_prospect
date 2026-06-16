@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FileCode2, Copy, Check, X } from 'lucide-react';
 import type { Lead } from '../lib/types';
 import { buildLpPrompt } from '../lib/lpPrompt';
@@ -35,9 +36,9 @@ function PromptModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="card flex max-h-[85vh] w-full max-w-2xl flex-col animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="card flex max-h-[85vh] w-full max-w-2xl flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h3 className="flex items-center gap-2 text-base font-semibold">
@@ -48,20 +49,17 @@ function PromptModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>
         </div>
 
-        <pre className="flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/[0.06] bg-black/30 p-4 font-mono text-xs leading-relaxed text-zinc-300">
-{prompt}
-        </pre>
+        <pre className="flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-white/[0.06] bg-black/30 p-4 font-mono text-xs leading-relaxed text-zinc-300">{prompt}</pre>
 
         <div className="mt-4 flex items-center justify-between gap-3">
-          <ol className="text-[11px] text-zinc-500">
-            <li>1. Copie o prompt · 2. Crie uma pasta · 3. Abra o Claude Code · 4. Cole e gere a LP</li>
-          </ol>
+          <p className="text-[11px] text-zinc-500">1. Copie · 2. Crie uma pasta · 3. Abra o Claude Code · 4. Cole e gere a LP</p>
           <button onClick={copy} className="btn-primary shrink-0">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copiado!' : 'Copiar prompt'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

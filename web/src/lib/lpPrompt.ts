@@ -96,8 +96,11 @@ export function buildLpPrompt(lead: Lead): string {
     `# Tarefa: criar uma LANDING PAGE PREMIUM para "${lead.name}"`,
     ``,
     `Você é um web designer e desenvolvedor sênior. Crie, nesta pasta, uma landing page de ALTA`,
-    `CONVERSÃO e visual PREMIUM, em UM ÚNICO arquivo \`index.html\` self-contained, usando Tailwind`,
-    `via CDN e Google Fonts. Deve abrir direto no navegador, pronta para apresentar a um cliente.`,
+    `CONVERSÃO e visual PREMIUM em UM ÚNICO arquivo \`index.html\`, 100% self-contained: TODO o CSS`,
+    `(e qualquer JS) dentro do próprio arquivo (tags <style>/<script>). SEM build, SEM npm, SEM`,
+    `servidor, SEM dependências/CDN obrigatórios. O cliente precisa conseguir abrir o arquivo com`,
+    `DUPLO CLIQUE, direto no navegador, e ver a página perfeita — inclusive sem internet.`,
+    `Fontes do Google podem entrar via <link> (com fallback para fonte do sistema se offline).`,
     ``,
     `## O negócio`,
     `- Nome: ${lead.name}`,
@@ -140,7 +143,8 @@ export function buildLpPrompt(lead: Lead): string {
     `## Regras`,
     `- Copy 100% em PT-BR, persuasiva e específica do nicho. PROIBIDO "Lorem ipsum".`,
     `- Todos os CTAs levam ao WhatsApp: ${wa}`,
-    `- Entregue um \`index.html\` único, pronto para abrir. Capriche no acabamento premium.`,
+    `- Entregue UM ÚNICO arquivo \`index.html\`, sem dependências externas obrigatórias (CSS embutido),`,
+    `  que abra perfeitamente com DUPLO CLIQUE no navegador. Capriche no acabamento premium.`,
   ];
 
   return linhas.filter((l) => l !== undefined).join('\n');
