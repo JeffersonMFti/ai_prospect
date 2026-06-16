@@ -52,6 +52,7 @@ export interface Lead {
   score: number | null;
   reasoning_score: string | null;
   status: LeadStatus;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

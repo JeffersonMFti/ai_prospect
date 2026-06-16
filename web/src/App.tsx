@@ -1,13 +1,15 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { LayoutDashboard, Map, CheckCircle2, Clock3, Zap } from 'lucide-react';
+import { LayoutDashboard, Map, CheckCircle2, Clock3, KanbanSquare, Zap } from 'lucide-react';
 import { cn } from './components/ui';
 import Mapeamento from './pages/Mapeamento';
 import Aprovacao from './pages/Aprovacao';
 import Fila from './pages/Fila';
 import Dashboard from './pages/Dashboard';
+import Crm from './pages/Crm';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/crm', label: 'CRM', icon: KanbanSquare },
   { to: '/mapeamento', label: 'Mapeamento', icon: Map },
   { to: '/aprovacao', label: 'Aprovação', icon: CheckCircle2 },
   { to: '/fila', label: 'Fila de envio', icon: Clock3 },
@@ -52,6 +54,7 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/crm" element={<Crm />} />
           <Route path="/mapeamento" element={<Mapeamento />} />
           <Route path="/aprovacao" element={<Aprovacao />} />
           <Route path="/fila" element={<Fila />} />
