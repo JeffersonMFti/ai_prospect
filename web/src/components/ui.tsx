@@ -1,9 +1,40 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
 
 export function cn(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ');
+}
+
+export function Select<T extends string>({
+  value,
+  onChange,
+  options,
+  className,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  className?: string;
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full cursor-pointer appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-2.5 pr-7
+                   text-xs font-medium text-zinc-200 outline-none transition focus:border-violet-500/50"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-[#101014] text-zinc-100">
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+    </div>
+  );
 }
 
 export function Spinner({ className }: { className?: string }) {

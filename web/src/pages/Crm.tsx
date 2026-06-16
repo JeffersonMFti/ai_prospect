@@ -5,9 +5,21 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Lead, LeadStatus, Message } from '../lib/types';
-import { PageHeader, Spinner, cn } from '../components/ui';
+import { PageHeader, Spinner, Select, cn } from '../components/ui';
 
 type LeadCard = Lead & { messages: Pick<Message, 'text'>[] };
+
+const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+  { value: 'novo', label: '🆕 Novo' },
+  { value: 'pontuado', label: '📊 Pontuado' },
+  { value: 'pronto', label: '💬 Pronto' },
+  { value: 'aprovado', label: '👍 Aprovado' },
+  { value: 'enviado', label: '📤 Enviado' },
+  { value: 'respondeu', label: '🔥 Respondeu' },
+  { value: 'fechou', label: '✅ Fechou' },
+  { value: 'descartado', label: '🗑️ Descartado' },
+  { value: 'nao_perturbe', label: '🚫 Não perturbe' },
+];
 
 interface Column {
   key: string;
@@ -112,7 +124,9 @@ export default function Crm() {
                 {byColumn[col.key].length === 0 ? (
                   <p className="px-1 py-6 text-center text-xs text-zinc-600">Arraste cards para cá</p>
                 ) : (
-                  byColumn[col.key].map((lead) => <CardCrm key={lead.id} lead={lead} onNotes={saveNotes} />)
+                  byColumn[col.key].map((lead) => (
+                    <CardCrm key={lead.id} lead={lead} onNotes={saveNotes} onStatus={move} />
+                  ))
                 )}
               </div>
             </div>
@@ -123,7 +137,15 @@ export default function Crm() {
   );
 }
 
-function CardCrm({ lead, onNotes }: { lead: LeadCard; onNotes: (id: string, notes: string) => void }) {
+function CardCrm({
+  lead,
+  onNotes,
+  onStatus,
+}: {
+  lead: LeadCard;
+  onNotes: (id: string, notes: string) => void;
+  onStatus: (id: string, status: LeadStatus) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(lead.notes ?? '');
   const score = lead.score ?? 0;
@@ -191,6 +213,11 @@ function CardCrm({ lead, onNotes }: { lead: LeadCard; onNotes: (id: string, note
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
+      </div>
+
+      {/* mover de etapa por dropdown (alternativa ao arrastar) */}
+      <div className="mt-2">
+        <Select value={lead.status} onChange={(v) => onStatus(lead.id, v)} options={STATUS_OPTIONS} />
       </div>
 
       <button
