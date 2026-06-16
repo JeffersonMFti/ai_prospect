@@ -80,7 +80,9 @@ ESTRUTURA (adapte, não rotule as partes):
 
 REGRAS:
 - Use dados reais (nome, nicho, nº de avaliações). Proibido template genérico.
-- Tom de pessoa real, próximo e respeitoso. ~5-7 linhas. 1-2 emojis no máximo.
+- Tom de pessoa real, próximo, empático e respeitoso. NUNCA pressione o cliente.
+- PROIBIDO usar emojis. Texto limpo e profissional.
+- ~5-7 linhas. Explique o valor com clareza, sem jargão.
 - A ancoragem (de R$ 1.297 por R$ 797) deve aparecer, mas sem soar agressiva.
 - Termine sempre com o gatilho: responda *EU QUERO* ou *ME EXPLICA MAIS*.
 - NÃO inclua "responda SAIR" nem texto de descadastro.
