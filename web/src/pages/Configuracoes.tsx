@@ -54,7 +54,7 @@ export default function Configuracoes() {
   if (!s) return <p className="text-rose-300">{error ?? 'Não foi possível carregar as configurações.'}</p>;
 
   return (
-    <div className="animate-fade-in max-w-3xl space-y-5">
+    <div className="max-w-3xl space-y-5">
       <PageHeader icon={Settings2} title="Configurações" subtitle="Controle o ritmo, o tom e as regras da prospecção" />
 
       {error && <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] p-4 text-sm text-rose-300">{error}</div>}

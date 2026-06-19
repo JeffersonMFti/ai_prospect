@@ -83,17 +83,17 @@ export default function Crm() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader
-          icon={KanbanSquare}
-          title="CRM"
-          subtitle="Arraste (ou use o seletor) conforme conversa · o Dashboard atualiza sozinho"
-        />
-        <button onClick={() => setAdding(true)} className="btn-ghost mb-6">
-          <Plus className="h-4 w-4" /> Lead manual
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        icon={KanbanSquare}
+        title="CRM"
+        subtitle="Arraste (ou use o seletor) conforme conversa · o Dashboard atualiza sozinho"
+        action={
+          <button onClick={() => setAdding(true)} className="btn-ghost">
+            <Plus className="h-4 w-4" /> Lead manual
+          </button>
+        }
+      />
 
       {adding && <AddLeadModal onClose={() => setAdding(false)} onAdded={load} />}
 

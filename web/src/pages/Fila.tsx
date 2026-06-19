@@ -42,11 +42,11 @@ export default function Fila() {
   const countdown = proximo ? Math.max(0, Math.floor((new Date(proximo.scheduled_at).getTime() - now) / 1000)) : null;
 
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="space-y-5">
       <PageHeader icon={Clock3} title="Fila de envio" subtitle="1 mensagem a cada 3 minutos · anti-ban" />
 
       {countdown !== null && (
-        <div className="card flex items-center justify-center gap-4 text-center">
+        <div className="card-gradient flex items-center justify-center gap-4 text-center">
           <Timer className="h-8 w-8 text-brand-400 animate-pulse-glow" />
           <div>
             <p className="text-xs uppercase tracking-wider text-zinc-500">Próximo envio em</p>

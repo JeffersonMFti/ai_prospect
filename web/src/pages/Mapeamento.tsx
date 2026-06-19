@@ -24,7 +24,7 @@ export default function Mapeamento() {
   const isRunning = job && (job.status === 'pending' || job.status === 'running');
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6">
       <PageHeader
         icon={Map}
         title="Mapeamento de empresas"
@@ -32,7 +32,7 @@ export default function Mapeamento() {
       />
 
       {!isRunning && (
-        <div className="card grid gap-4 sm:grid-cols-3">
+        <div className="card-gradient grid gap-4 sm:grid-cols-3">
           <Field label="Nicho">
             <input className="input" value={niche} onChange={(e) => setNiche(e.target.value)} />
           </Field>

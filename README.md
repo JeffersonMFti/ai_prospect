@@ -72,7 +72,7 @@ Detalhes e ADRs em [`specs/01-architecture.md`](specs/01-architecture.md).
 | Backend / banco | Supabase (Postgres, RLS, Realtime, Edge Functions em Deno/TS, pg_cron) |
 | IA | Google Gemini 2.5 Flash (pós-pago) |
 | WhatsApp | uazapi (uazapiGO V2) |
-| Frontend | React 18 + Vite + TypeScript + Tailwind + shadcn/ui + Recharts (Vercel) |
+| Frontend | React 18 + Vite + TypeScript + Tailwind + Framer Motion + Recharts (Vercel) |
 
 ---
 

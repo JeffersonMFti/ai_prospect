@@ -40,12 +40,17 @@ export default {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-4px)' },
         },
+        'gradient-pan': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.8s infinite',
         'fade-in': 'fade-in 0.4s ease-out both',
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         float: 'float 3s ease-in-out infinite',
+        'gradient-pan': 'gradient-pan 6s ease infinite',
       },
       backgroundImage: {
         'dot-grid': 'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)',

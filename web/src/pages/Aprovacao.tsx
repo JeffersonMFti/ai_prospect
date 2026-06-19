@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   CheckCircle2, Star, MessageSquare, Phone, Instagram, Brain,
   Send, X, ChevronDown, Inbox, Copy, Check,
@@ -7,6 +8,7 @@ import {
 import { supabase } from '../lib/supabase';
 import type { Lead, Message } from '../lib/types';
 import { PageHeader, TierBadge, ScorePill, EmptyState, cn } from '../components/ui';
+import { stagger, riseItem } from '../lib/motion';
 import { LpPromptButton } from '../components/LpPromptButton';
 
 type LeadComMensagem = Lead & { messages: Message[] };
@@ -51,7 +53,7 @@ export default function Aprovacao() {
   }
 
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="space-y-5">
       <PageHeader
         icon={CheckCircle2}
         title="Aprovação"
@@ -79,9 +81,11 @@ export default function Aprovacao() {
           action={<Link to="/mapeamento" className="btn-primary">Ir para Mapeamento</Link>}
         />
       ) : (
-        leads.map((lead) => (
-          <CardLead key={lead.id} lead={lead} onEnviado={marcarEnviado} onDescartar={descartar} />
-        ))
+        <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+          {leads.map((lead) => (
+            <CardLead key={lead.id} lead={lead} onEnviado={marcarEnviado} onDescartar={descartar} />
+          ))}
+        </motion.div>
       )}
     </div>
   );
@@ -109,7 +113,7 @@ function CardLead({
   }
 
   return (
-    <div className="card card-hover animate-fade-in">
+    <motion.div variants={riseItem} className="card card-hover">
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="text-lg font-semibold tracking-tight">{lead.name}</h3>
         <TierBadge tier={lead.niche_tier} />
@@ -171,6 +175,6 @@ function CardLead({
           <X className="h-4 w-4" /> Descartar
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

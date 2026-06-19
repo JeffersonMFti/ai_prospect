@@ -2,62 +2,145 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   Design tokens — dark premium (Linear/Vercel-grade)
+   ============================================================================= */
 :root {
   color-scheme: dark;
+
+  /* superfícies em camadas */
+  --bg: #08080c;
+  --surface-1: rgba(255, 255, 255, 0.024);
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* acento */
+  --brand: 139 92 246; /* violet-500 */
+  --brand-soft: 167 139 250; /* violet-400 */
+
+  /* sombras */
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 40px -16px rgba(0, 0, 0, 0.7);
+  --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
 }
 
 html,
 body {
-  background-color: #07070b;
+  background-color: var(--bg);
 }
 
 body {
   @apply text-zinc-100 antialiased;
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  /* glow ambiente no topo + leve dégradé */
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+  letter-spacing: -0.011em;
+  /* glow ambiente em camadas + véu suave */
   background-image:
-    radial-gradient(60rem 40rem at 80% -10%, rgba(124, 58, 237, 0.18), transparent 60%),
-    radial-gradient(50rem 30rem at 0% 0%, rgba(56, 189, 248, 0.08), transparent 55%);
+    radial-gradient(58rem 38rem at 88% -12%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(46rem 30rem at -8% -6%, rgba(56, 189, 248, 0.07), transparent 55%),
+    radial-gradient(40rem 40rem at 50% 120%, rgba(139, 92, 246, 0.05), transparent 60%);
   background-attachment: fixed;
+}
+
+/* foco acessível consistente (WCAG) */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(139, 92, 246, 0.6);
+  border-radius: 0.5rem;
+}
+
+/* scrollbar discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 @layer components {
   .input {
     @apply w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm
            text-zinc-100 placeholder-zinc-500 outline-none transition-all
-           focus:border-[rgba(139,92,246,0.6)] focus:bg-white/[0.05] focus:ring-2 focus:ring-[rgba(139,92,246,0.25)];
+           focus:border-[rgba(139,92,246,0.55)] focus:bg-white/[0.05] focus:ring-2 focus:ring-[rgba(139,92,246,0.22)];
   }
 
-  /* Card glass premium */
+  /* Card glass premium com hairline + brilho interno */
   .card {
-    @apply rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 backdrop-blur-xl;
-    box-shadow:
-      0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
-      0 8px 30px -12px rgba(0, 0, 0, 0.6);
+    @apply rounded-2xl border border-white/[0.08] bg-white/[0.024] p-5 backdrop-blur-xl;
+    box-shadow: var(--shadow-card);
   }
   .card-hover {
     @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-white/[0.04];
+  }
+
+  /* Card com borda-gradiente (destaque "premium") */
+  .card-gradient {
+    position: relative;
+    @apply rounded-2xl bg-white/[0.024] p-5 backdrop-blur-xl;
+    box-shadow: var(--shadow-card);
+  }
+  .card-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      140deg,
+      rgba(167, 139, 250, 0.45),
+      rgba(255, 255, 255, 0.06) 40%,
+      rgba(255, 255, 255, 0.02)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Painel sólido (sidebar / superfícies fixas) */
+  .panel {
+    @apply border-white/[0.06] bg-[#0b0b11]/80 backdrop-blur-xl;
   }
 
   /* Botão primário com gradiente */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500
            px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(139,92,246,0.5)] transition-all
-           hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.55)] active:scale-[0.98]
+           hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.6)] hover:brightness-110 active:scale-[0.98]
            disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.02]
-           px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all hover:bg-white/[0.06] active:scale-[0.98];
+           px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all hover:border-white/[0.16] hover:bg-white/[0.06] active:scale-[0.98];
   }
   .btn-success {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500
-           px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-[0_0_24px_-8px_rgba(16,185,129,0.6)] active:scale-[0.98];
+           px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-[0_0_24px_-8px_rgba(16,185,129,0.6)] hover:brightness-110 active:scale-[0.98];
+  }
+
+  /* Chip / pill genérico */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
 
   /* Texto gradiente */
   .text-gradient {
     @apply bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent;
+  }
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-white via-violet-200 to-violet-400 bg-clip-text text-transparent;
   }
 }
 
@@ -69,5 +152,16 @@ body {
     content: '';
     @apply absolute inset-0 -translate-x-full animate-shimmer
            bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+
+  /* respeita usuários que pedem menos movimento */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
   }
 }
