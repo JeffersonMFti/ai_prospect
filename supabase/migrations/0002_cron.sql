@@ -7,7 +7,7 @@
 --    2) ter guardado os secrets no Vault (project_url e service_role_key).
 --
 -- Setup dos secrets (rode 1x no SQL Editor, substituindo os valores):
---   select vault.create_secret('https://jecpyknyjwzedosjgaqc.supabase.co', 'project_url');
+--   select vault.create_secret('https://YOUR_PROJECT_REF.supabase.co', 'project_url');
 --   select vault.create_secret('SEU_SERVICE_ROLE_KEY', 'service_role_key');
 -- ============================================================================
 

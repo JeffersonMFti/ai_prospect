@@ -1,6 +1,6 @@
 -- ============================================================================
 -- ai_prospect — Migration 0005: adicionar lead manual pelo dashboard
--- Aplique no SQL Editor: https://supabase.com/dashboard/project/jecpyknyjwzedosjgaqc/sql/new
+-- Aplique no SQL Editor: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql/new
 -- ============================================================================
 
 -- Permite o dashboard (anon) inserir leads prospectados manualmente (ex.: Instagram)

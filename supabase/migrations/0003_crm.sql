@@ -1,6 +1,6 @@
 -- ============================================================================
 -- ai_prospect — Migration 0003: CRM (anotações por lead)
--- Aplique no SQL Editor: https://supabase.com/dashboard/project/jecpyknyjwzedosjgaqc/sql/new
+-- Aplique no SQL Editor: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql/new
 -- ============================================================================
 
 -- Anotações manuais do CRM (o que você conversou com o lead)

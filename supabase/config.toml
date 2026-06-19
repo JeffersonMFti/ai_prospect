@@ -1,5 +1,5 @@
 # Supabase config — ai_prospect
-project_id = "jecpyknyjwzedosjgaqc"
+project_id = "YOUR_PROJECT_REF"
 
 [db]
 major_version = 15

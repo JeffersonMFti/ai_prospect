@@ -28,6 +28,10 @@ playwright-report/
 test-results/
 .cache/
 
+# Dados de clientes reais — LPs geradas por cliente (nunca versionar: contêm
+# WhatsApp/Instagram/endereço reais — privacidade/LGPD)
+clientes/
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

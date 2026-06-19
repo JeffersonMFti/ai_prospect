@@ -1,6 +1,6 @@
 -- ============================================================================
 -- ai_prospect — Migration 0004: Configurações editáveis + follow-up
--- Aplique no SQL Editor: https://supabase.com/dashboard/project/jecpyknyjwzedosjgaqc/sql/new
+-- Aplique no SQL Editor: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql/new
 -- ============================================================================
 
 -- settings: janela de horário comercial + parâmetros de follow-up

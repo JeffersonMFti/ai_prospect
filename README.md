@@ -1,9 +1,30 @@
 # ai_prospect 🎯
 
+![status](https://img.shields.io/badge/status-MVP_funcional-success)
+![python](https://img.shields.io/badge/Python-3.12-blue)
+![typescript](https://img.shields.io/badge/TypeScript-React_18-3178c6)
+![supabase](https://img.shields.io/badge/Supabase-Postgres_%2B_Edge-3ecf8e)
+![license](https://img.shields.io/badge/license-MIT-black)
+
 **Automação de prospecção B2B para venda de landing pages.** Garimpa empresas **sem site** no Google Maps, usa IA (Gemini) para **priorizar** os leads mais quentes e **escrever mensagens de captação personalizadas por nicho**, e dispara via **WhatsApp (uazapi)** com **aprovação humana por clique** e **throttle de 1 envio a cada 3 minutos** — tudo operado por um **dashboard web**.
 
 > Produto vendido: landing page por **R$ 797 à vista ou 10x sem juros**.
 > Meta de negócio: **3–4 vendas/mês a cada ~300 empresas prospectadas** (~1,2% de conversão).
+
+> 📁 **Projeto de portfólio.** Demonstra um sistema full-stack ponta a ponta:
+> scraping anti-ban com browser real, orquestração serverless (Edge Functions +
+> `pg_cron`), pipelines de IA generativa (scoring + copywriting), integração com
+> WhatsApp e um dashboard React em produção — construído com **Spec-Driven
+> Development** (toda a especificação versionada em [`specs/`](specs/)).
+
+### 🧠 Destaques técnicos
+
+- **Scraper resiliente** em Python + Playwright (navegador **real**, não headless) com simulação de comportamento humano e parsing testado.
+- **Backend serverless** no Supabase: Postgres com **RLS**, Realtime, 4 Edge Functions (Deno/TS) e jobs `pg_cron` com **throttle** (1 envio/3 min) e cooldown.
+- **IA generativa** (Gemini): scoring 0–100 de leads + geração de mensagens personalizadas por nicho, com prompts versionados em [`specs/04-ai-prompts.md`](specs/04-ai-prompts.md).
+- **Frontend** React 18 + Vite + TS + Tailwind + Recharts, deploy na Vercel.
+- **Segurança por design:** segredos isolados (service_role só no agente/EFs), opt-out LGPD, anti-ban com volume baixo.
+- **Testado:** suíte Python (`pytest`) e web (`vitest`) — ver [seção de testes](#-rodando-os-testes).
 
 ---
 
@@ -59,13 +80,15 @@ Detalhes e ADRs em [`specs/01-architecture.md`](specs/01-architecture.md).
 
 ```
 ai_prospect/
-├── specs/          📘 Documentação SDD (LEIA PRIMEIRO — é o que guia toda a construção)
-├── agent/          🐍 Agente local Python + scraper (a construir)
-├── supabase/       🗄️ Migrations + Edge Functions (a construir)
-└── web/            🖥️ Dashboard React (a construir)
+├── specs/          📘 Documentação SDD (LEIA PRIMEIRO — é o que guiou toda a construção)
+├── agent/          🐍 Agente local Python + scraper (Playwright) + testes
+├── supabase/       🗄️ Migrations (Postgres/RLS/cron) + Edge Functions (Deno/TS) + testes
+└── web/            🖥️ Dashboard React (Vite + Tailwind) + testes
 ```
 
-> **Estado atual:** a documentação SDD está completa. O código (`agent/`, `supabase/`, `web/`) é construído seguindo as specs, na ordem do DAG.
+> **Estado atual:** MVP funcional. A documentação SDD em [`specs/`](specs/) é a fonte
+> da verdade; o código em `agent/`, `supabase/` e `web/` implementa as specs na ordem
+> do DAG. Suítes de teste (Python + web) passando.
 
 ---
 
@@ -123,6 +146,22 @@ python main.py     # liga o agente: fica escutando a fila de mapeamento
 ```
 
 Variáveis de ambiente: copie de [`.env.example`](.env.example) (detalhe em contrato C6).
+O `.env.example` usa `YOUR_PROJECT_REF` como placeholder — substitua pelo ref do seu projeto Supabase.
+
+---
+
+## 🧪 Rodando os testes
+
+```bash
+# Agente Python (parsers, throttle/scheduling, comportamento humano)
+cd agent && pip install -e . && pip install pytest && pytest -q
+
+# Dashboard web (hooks/métricas)
+cd web && npm install && npm test
+
+# Edge Functions (Deno) — lógica de prompts e throttle
+cd supabase && deno test functions/_shared/
+```
 
 ---
 
@@ -132,6 +171,12 @@ Variáveis de ambiente: copie de [`.env.example`](.env.example) (detalhe em cont
 - **Anti-ban:** volume baixo (~50/sessão, poucas vezes/semana), 6 envios/dia, 1 msg a cada 3 min, aprovação manual. Não burlar esses limites.
 - **LGPD:** dados de empresas (PJ) públicos; mensagens incluem opt-out ("responda SAIR"); leads que pedem saída viram `nao_perturbe`.
 - **Segredos:** nunca no código. `service_role` e chaves de IA/WhatsApp só no agente local e nas Edge Functions — jamais no frontend.
+
+---
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT** — veja [LICENSE](LICENSE). Sinta-se à vontade para estudar, reusar e adaptar.
 
 ---
 

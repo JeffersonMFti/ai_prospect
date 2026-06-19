@@ -20,7 +20,7 @@ npm i -g supabase   # Supabase CLI
 Você já aplicou `0001_init.sql` e `0002_cron.sql`, e pausou o cron. Nada a fazer aqui agora
 (o cron é reativado no Passo 5, depois das funções no ar).
 
-Conferir tabelas: https://supabase.com/dashboard/project/jecpyknyjwzedosjgaqc/editor
+Conferir tabelas: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/editor
 (devem existir: `scrape_jobs`, `leads`, `messages`, `sends`, `settings`).
 
 ---
@@ -39,7 +39,7 @@ As 4 abas devem carregar. (O contador de mapeamento só anda com o agente do Pas
 ## Passo 3 — Edge Functions (T2 + T3)
 ```bash
 supabase login
-supabase link --project-ref jecpyknyjwzedosjgaqc
+supabase link --project-ref YOUR_PROJECT_REF
 
 # secrets das funções (Gemini + uazapi)
 supabase secrets set \
@@ -73,10 +73,10 @@ contador sobe ao vivo. 🎉
 ---
 
 ## Passo 5 — Reativar o cron (pg_cron chama as funções)
-No [SQL Editor](https://supabase.com/dashboard/project/jecpyknyjwzedosjgaqc/sql/new):
+No [SQL Editor](https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql/new):
 ```sql
 -- 1) secrets do Vault (substitua o service_role_key)
-select vault.create_secret('https://jecpyknyjwzedosjgaqc.supabase.co', 'project_url');
+select vault.create_secret('https://YOUR_PROJECT_REF.supabase.co', 'project_url');
 select vault.create_secret('<SERVICE_ROLE_KEY>', 'service_role_key');
 ```
 ```sql
