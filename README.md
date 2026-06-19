@@ -8,23 +8,21 @@
 
 **Automação de prospecção B2B para venda de landing pages.** Garimpa empresas **sem site** no Google Maps, usa IA (Gemini) para **priorizar** os leads mais quentes e **escrever mensagens de captação personalizadas por nicho**, e dispara via **WhatsApp (uazapi)** com **aprovação humana por clique** e **throttle de 1 envio a cada 3 minutos** — tudo operado por um **dashboard web**.
 
-> Produto vendido: landing page por **R$ 797 à vista ou 10x sem juros**.
-> Meta de negócio: **3–4 vendas/mês a cada ~300 empresas prospectadas** (~1,2% de conversão).
+Este repositório é, antes de tudo, um **estudo de caso de engenharia**: um sistema pequeno mas completo, que costura scraping, banco serverless, IA generativa e automação de mensagens num fluxo só. A intenção não é "rode em produção como está" — é deixar claro **como as peças se encaixam** e servir de base pra você ler, adaptar, quebrar e melhorar. Se você é dev em começo/meio de carreira procurando um projeto real (não um to-do app) pra estudar arquitetura ponta a ponta, é pra você.
 
-> 📁 **Projeto de portfólio.** Demonstra um sistema full-stack ponta a ponta:
-> scraping anti-ban com browser real, orquestração serverless (Edge Functions +
-> `pg_cron`), pipelines de IA generativa (scoring + copywriting), integração com
-> WhatsApp e um dashboard React em produção — construído com **Spec-Driven
-> Development** (toda a especificação versionada em [`specs/`](specs/)).
+---
 
-### 🧠 Destaques técnicos
+## 🧠 O que dá pra estudar aqui
 
-- **Scraper resiliente** em Python + Playwright (navegador **real**, não headless) com simulação de comportamento humano e parsing testado.
-- **Backend serverless** no Supabase: Postgres com **RLS**, Realtime, 4 Edge Functions (Deno/TS) e jobs `pg_cron` com **throttle** (1 envio/3 min) e cooldown.
-- **IA generativa** (Gemini): scoring 0–100 de leads + geração de mensagens personalizadas por nicho, com prompts versionados em [`specs/04-ai-prompts.md`](specs/04-ai-prompts.md).
-- **Frontend** React 18 + Vite + TS + Tailwind + Recharts, deploy na Vercel.
-- **Segurança por design:** segredos isolados (service_role só no agente/EFs), opt-out LGPD, anti-ban com volume baixo.
-- **Testado:** suíte Python (`pytest`) e web (`vitest`) — ver [seção de testes](#-rodando-os-testes).
+Cada item abaixo é uma decisão de arquitetura com trade-offs reais — boa matéria-prima pra entender *por que* foi feito assim (e questionar):
+
+- **Scraping com browser real** — Python + Playwright **não-headless** rodando localmente (IP residencial) em vez de headless na nuvem. Por quê? Anti-bloqueio. Veja a simulação de comportamento humano em [`agent/scraper/human_behavior.py`](agent/scraper/human_behavior.py).
+- **Orquestração serverless** — Supabase Postgres + `pg_cron` chamando **Edge Functions** (Deno/TS) em intervalos, sem servidor próprio. O dashboard nunca fala direto com o WhatsApp; ele só enfileira no banco.
+- **Fila com throttle e cooldown** — a lógica pura de "1 envio a cada N min, mesmo aprovando vários de uma vez" está isolada e testada em [`supabase/functions/_shared/throttle.ts`](supabase/functions/_shared/throttle.ts). Ótimo exemplo de como extrair regra de negócio testável de I/O.
+- **IA como etapa de pipeline** — Gemini faz duas coisas distintas: *scoring* (0–100) e *copywriting* por nicho. Prompts versionados como código em [`specs/04-ai-prompts.md`](specs/04-ai-prompts.md).
+- **Humano no loop** — nada é enviado automaticamente; a IA propõe, a pessoa aprova por clique. Um padrão útil pra qualquer automação com risco.
+- **Segurança por camadas** — `service_role` e chaves de IA/WhatsApp só no agente local e nas Edge Functions; o frontend só conhece a `anon key`. RLS no banco.
+- **Spec-Driven Development** — todo o sistema foi especificado antes em [`specs/`](specs/). Dá pra comparar spec × implementação e ver como a documentação guia o código.
 
 ---
 
@@ -41,6 +39,10 @@ Você aprova por clique  →  fila dispara 1 msg a cada 3 min via WhatsApp
         ↓
 Dashboard acompanha funil, conversão por nicho e receita
 ```
+
+> **Contexto de negócio (pra dar sentido às métricas):** o produto vendido é uma landing
+> page (~R$ 797); a meta hipotética é ~3–4 vendas/mês a cada ~300 empresas prospectadas
+> (~1,2% de conversão). São números de exemplo — o que importa aqui é o pipeline.
 
 ---
 
@@ -86,15 +88,22 @@ ai_prospect/
 └── web/            🖥️ Dashboard React (Vite + Tailwind) + testes
 ```
 
+### Por onde começar a ler o código
+
+1. [`specs/00-overview.md`](specs/00-overview.md) — o mapa mental do sistema e o glossário.
+2. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — o **modelo de dados** é a espinha dorsal; entenda as tabelas antes do resto.
+3. [`supabase/functions/_shared/`](supabase/functions/_shared/) — a lógica compartilhada (throttle, prompts, tipos) e os testes que a cercam.
+4. [`agent/scraper/`](agent/scraper/) — o scraper e o parsing (com testes puros, fáceis de seguir).
+5. [`web/src/pages/`](web/src/pages/) — cada aba do dashboard é uma página independente.
+
 > **Estado atual:** MVP funcional. A documentação SDD em [`specs/`](specs/) é a fonte
-> da verdade; o código em `agent/`, `supabase/` e `web/` implementa as specs na ordem
-> do DAG. Suítes de teste (Python + web) passando.
+> da verdade; o código implementa as specs. Suítes de teste (Python + web) passando.
 
 ---
 
 ## 📘 Documentação SDD (Spec-Driven Development)
 
-Este projeto é construído por **specs executáveis** — o código implementa a spec, não improvisa. Comece por aqui:
+Este projeto foi construído por **specs executáveis** — o código implementa a spec, não improvisa. É um bom lugar pra ver como documentação e código convivem:
 
 | Documento | Conteúdo |
 |---|---|
@@ -109,26 +118,7 @@ Este projeto é construído por **specs executáveis** — o código implementa 
 
 ---
 
-## 🚀 Ordem de construção (DAG)
-
-Veja [`specs/orchestration/dependency-graph.md`](specs/orchestration/dependency-graph.md).
-
-```
-Onda 1:  T0  Fundação Supabase (schema/RLS/cron)        ← bloqueia tudo
-Onda 2:  T1 Agente+Scraper · T2 EFs de IA · T4 Dashboard  (paralelo)
-Onda 3:  T3 EFs de Envio (throttle/uazapi)
-Onda 4:  T5 Integração + E2E
-```
-
-Cada tarefa tem um **brief pronto** em [`specs/orchestration/agent-briefs.md`](specs/orchestration/agent-briefs.md) — cole no Claude Code (VSCode) para construir aquela parte.
-
----
-
-## 🚀 Go-live
-
-Passo a passo completo em **[DEPLOY.md](DEPLOY.md)**. Todas as chaves a preencher estão em **[.env.example](.env.example)** (com instruções de onde pegar cada uma).
-
-## 🛠️ Setup rápido
+## 🛠️ Rodando localmente
 
 ```bash
 # 1) Banco — Supabase
@@ -145,8 +135,9 @@ pip install -e . && playwright install chromium
 python main.py     # liga o agente: fica escutando a fila de mapeamento
 ```
 
-Variáveis de ambiente: copie de [`.env.example`](.env.example) (detalhe em contrato C6).
+Variáveis de ambiente: copie de [`.env.example`](.env.example) (cada chave tem instrução de onde pegar).
 O `.env.example` usa `YOUR_PROJECT_REF` como placeholder — substitua pelo ref do seu projeto Supabase.
+Passo a passo completo de deploy em **[DEPLOY.md](DEPLOY.md)**.
 
 ---
 
@@ -165,21 +156,54 @@ cd supabase && deno test functions/_shared/
 
 ---
 
-## ⚖️ Considerações importantes
+## 🧩 Ideias de melhoria (pegue uma e mande ver)
 
-- **Agente local obrigatório:** o scraping roda na sua máquina (IP residencial) para não tomar bloqueio. O dashboard na nuvem aciona o agente via fila no Supabase.
-- **Anti-ban:** volume baixo (~50/sessão, poucas vezes/semana), 6 envios/dia, 1 msg a cada 3 min, aprovação manual. Não burlar esses limites.
-- **LGPD:** dados de empresas (PJ) públicos; mensagens incluem opt-out ("responda SAIR"); leads que pedem saída viram `nao_perturbe`.
-- **Segredos:** nunca no código. `service_role` e chaves de IA/WhatsApp só no agente local e nas Edge Functions — jamais no frontend.
+O projeto é propositalmente enxuto — sobra espaço pra evoluir. Algumas trilhas, da mais
+tranquila à mais profunda:
+
+**Bom primeiro PR**
+- Mover `web/tsconfig.tsbuildinfo` (artefato de build) para o `.gitignore`.
+- Lazy-load do Recharts com `import()` dinâmico — o chunk de gráficos é o maior do bundle.
+- Adicionar *empty states* e mensagens de erro mais claras nas páginas que ainda não têm.
+- Workflow de **CI** (GitHub Actions) rodando lint + testes + build em cada PR.
+
+**Intermediário**
+- **Tema claro / toggle** — os tokens de cor já estão centralizados em [`web/src/index.css`](web/src/index.css); falta a variante light.
+- Trocar o drag-and-drop nativo do CRM por **@dnd-kit** (ganha suporte a toque/mobile).
+- Assinar o dashboard ao **Supabase Realtime** para as métricas se atualizarem sozinhas (hoje busca uma vez).
+- Testes de componente (React Testing Library) e um *smoke* e2e com Playwright.
+- **Paginação/virtualização** da lista de leads no CRM (hoje limitada a 500).
+
+**Mais profundo**
+- Retomada/resync de jobs de scraping interrompidos e estratégia de rotação de proxy.
+- Observabilidade: logging estruturado + tracing das Edge Functions e do agente.
+- Camada de testes de integração ponta a ponta (agente → banco → EF → fila).
+- Generalizar o nicho/cidade pra outros mercados além de estética.
+
+Não tem issue formal pra cada uma — escolha, abra uma issue descrevendo a abordagem e siga.
+
+---
+
+## 🤝 Contribuindo
+
+1. Leia a [`CONSTITUTION.md`](specs/CONSTITUTION.md) — ela define as regras de stack, pastas e segurança.
+2. Antes de mexer numa área, dê uma olhada na spec correspondente em [`specs/`](specs/).
+3. Mantenha os testes passando (`pytest` / `vitest` / `deno test`) e rode `npm run lint` no `web/`.
+4. Segredos **nunca** no código — só via `.env` (já no `.gitignore`).
+
+PRs e issues são bem-vindos, inclusive os de "isso aqui podia ser melhor porque…". É pra isso que o repo está aberto.
+
+---
+
+## ⚖️ Notas importantes
+
+- **Agente local obrigatório:** o scraping roda na sua máquina (IP residencial) para reduzir bloqueio. O dashboard na nuvem aciona o agente via fila no Supabase.
+- **Anti-ban:** volume baixo (~50/sessão, poucas vezes/semana), 6 envios/dia, 1 msg a cada 3 min, aprovação manual. Esses limites são intencionais.
+- **LGPD:** dados de empresas (PJ) são públicos; as mensagens incluem opt-out ("responda SAIR"); leads que pedem saída viram `nao_perturbe`.
+- **Uso responsável:** automação de mensagens tem implicações legais e de reputação. Respeite os termos do WhatsApp e a legislação local antes de usar pra valer.
 
 ---
 
 ## 📄 Licença
 
 Distribuído sob a licença **MIT** — veja [LICENSE](LICENSE). Sinta-se à vontade para estudar, reusar e adaptar.
-
----
-
-## 📈 Métricas no dashboard
-
-Funil (garimpados → enviados → responderam → fecharam), taxa de resposta, taxa de fechamento vs meta (1,2%), receita gerada (fechados × R$ 797), conversão por nicho, distribuição de notas. Ver [`specs/features/F05-dashboard-web.md`](specs/features/F05-dashboard-web.md).
